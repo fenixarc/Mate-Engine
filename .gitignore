@@ -74,4 +74,8 @@ Assets/AssetStoreTools*
 .vs
 Assets/Example Avatar - USED FOR MATE ENGINE
 ProjectSettings/Packages
-UserSettings/Layouts
+UserSettings/
+
+# Addressables regenerates link.xml on editor start/build
+Assets/AddressableAssetsData/link.xml
+Assets/AddressableAssetsData/link.xml.meta
