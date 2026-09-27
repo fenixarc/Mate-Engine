@@ -79,3 +79,7 @@ UserSettings/
 # Addressables regenerates link.xml on editor start/build
 Assets/AddressableAssetsData/link.xml
 Assets/AddressableAssetsData/link.xml.meta
+
+# Unity crash-recovery scenes
+Assets/_Recovery/
+Assets/_Recovery.meta

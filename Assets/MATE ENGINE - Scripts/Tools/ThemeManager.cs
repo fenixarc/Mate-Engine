@@ -16,6 +16,11 @@ public class ThemeManager : MonoBehaviour
     readonly Dictionary<Material, Color> baseMainColor = new Dictionary<Material, Color>();
     readonly Dictionary<Material, Color> baseOverlayColor = new Dictionary<Material, Color>();
     readonly Dictionary<ParticleSystem, Color> baseParticleColor = new Dictionary<ParticleSystem, Color>();
+#if UNITY_EDITOR
+    // Editor only: these are shared .mat assets, so play-mode edits get saved to disk.
+    // Restoring via GetColor/SetColor drifts in the last float digits, so snapshot and copy back exactly.
+    readonly Dictionary<Material, Material> editorSnapshots = new Dictionary<Material, Material>();
+#endif
 
     float lastHue = -1f;
     float lastSat = -1f;
@@ -35,6 +40,9 @@ public class ThemeManager : MonoBehaviour
     void OnDisable()
     {
         if (runtimeActive && revertOnExitPlayMode) RestoreAll();
+#if UNITY_EDITOR
+        ClearEditorSnapshots();
+#endif
         if (Instance == this) Instance = null;
         runtimeActive = false;
         lastHue = -1f;
@@ -76,6 +84,13 @@ public class ThemeManager : MonoBehaviour
         baseColor.Remove(mat);
         baseMainColor.Remove(mat);
         baseOverlayColor.Remove(mat);
+#if UNITY_EDITOR
+        if (editorSnapshots.TryGetValue(mat, out var snap))
+        {
+            DestroyImmediate(snap);
+            editorSnapshots.Remove(mat);
+        }
+#endif
     }
 
     public void RegisterParticle(ParticleSystem ps)
@@ -102,6 +117,9 @@ public class ThemeManager : MonoBehaviour
         baseMainColor.Clear();
         baseOverlayColor.Clear();
         baseParticleColor.Clear();
+#if UNITY_EDITOR
+        ClearEditorSnapshots();
+#endif
         for (int i = 0; i < materials.Count; i++) CacheMaterial(materials[i]);
         for (int i = 0; i < particleSystems.Count; i++) CacheParticle(particleSystems[i]);
     }
@@ -112,7 +130,19 @@ public class ThemeManager : MonoBehaviour
         if (m.HasProperty("_Color") && !baseColor.ContainsKey(m)) baseColor[m] = m.GetColor("_Color");
         if (m.HasProperty("_MainColor") && !baseMainColor.ContainsKey(m)) baseMainColor[m] = m.GetColor("_MainColor");
         if (m.HasProperty("_OverlayColor") && !baseOverlayColor.ContainsKey(m)) baseOverlayColor[m] = m.GetColor("_OverlayColor");
+#if UNITY_EDITOR
+        if (!editorSnapshots.ContainsKey(m)) editorSnapshots[m] = new Material(m) { hideFlags = HideFlags.HideAndDontSave };
+#endif
     }
+
+#if UNITY_EDITOR
+    void ClearEditorSnapshots()
+    {
+        foreach (var snap in editorSnapshots.Values)
+            if (snap != null) DestroyImmediate(snap);
+        editorSnapshots.Clear();
+    }
+#endif
 
     void CacheParticle(ParticleSystem ps)
     {
@@ -172,6 +202,13 @@ public class ThemeManager : MonoBehaviour
         {
             var m = materials[i];
             if (m == null) continue;
+#if UNITY_EDITOR
+            if (editorSnapshots.TryGetValue(m, out var snap) && snap != null)
+            {
+                m.CopyPropertiesFromMaterial(snap);
+                continue;
+            }
+#endif
             if (m.HasProperty("_Color") && baseColor.TryGetValue(m, out var c0)) m.SetColor("_Color", c0);
             if (m.HasProperty("_MainColor") && baseMainColor.TryGetValue(m, out var mc0)) m.SetColor("_MainColor", mc0);
             if (m.HasProperty("_OverlayColor") && baseOverlayColor.TryGetValue(m, out var oc0)) m.SetColor("_OverlayColor", oc0);
