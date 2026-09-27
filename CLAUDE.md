@@ -11,6 +11,14 @@ Mate Engine (product name `MateEngineX`) is a Unity desktop-mascot app: a transp
 - **Scripting defines (Standalone):** `STEAMWORKS_NET;UNITY_POST_PROCESSING_STACK_V2`.
 - **License:** mixed AGPL v3 and MateProv2. Do not redistribute the default avatar (Yorshka Shop, all rights reserved).
 
+## Performance
+
+Mate Engine is meant to run constantly in the background alongside games and other apps, so code must be as lightweight and efficient as possible.
+- Keep `Update`/`LateUpdate` cheap. Avoid per-frame allocations (LINQ, string building, `new` lists, closures) and per-frame `Find*`/`GetComponent` calls; cache references instead.
+- Prefer event-driven logic or interval polling (coroutines with a cached `WaitForSeconds`, timers) over doing work every frame.
+- Keep expensive calls (COM/NAudio, P/Invoke, process enumeration, file I/O) infrequent and off the hot path, and dispose of native resources.
+- Idle features should cost close to nothing when disabled.
+
 ## Build / compile / test
 
 There is no CLI build script. Builds are made from the Unity Editor (File → Build Profiles → Windows x64). `Assets/Editor/PostBuildCopy.cs` copies `steam_api64.dll` and `steam_appid.txt` from `Assets/Plugins/` into the build folder after every build.
