@@ -1,7 +1,5 @@
-# 🎵 Mate-Engine (BPM Sync Edition)
-**Notice:** This is a modified fork of the original Mate-Engine. 
-
-**✨ New Feature:** The avatar now dynamically listens to your music (like Spotify) and synchronizes its dance animation speed to match the BPM of the song!
+# 🎵 Includes Mate-Engine (BPM Sync Edition)
+This project includes the **BPM Dance Sync** feature from [Mate-Engine (BPM Sync Edition)](https://github.com/pongsathorncha/Mate-Engine) by [pongsathorncha](https://github.com/pongsathorncha). The avatar listens to your music (like Spotify) and matches its dance animation speed to the song's BPM. Thanks to pongsathorncha for the feature!
 
 
 # MateEngine for Linux (Unoffical)
