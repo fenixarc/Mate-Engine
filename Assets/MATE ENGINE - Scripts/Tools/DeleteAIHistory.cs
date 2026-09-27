@@ -24,28 +24,35 @@ public class DeleteAIHistory : MonoBehaviour
 
     public void DeleteHistoryFiles()
     {
+        // Clear the conversation held in memory first, otherwise the next message writes it straight back to disk.
+        ClearLoadedHistory();
+
         string jsonPath = Path.Combine(Application.persistentDataPath, fileName + ".json");
         string cachePath = Path.Combine(Application.persistentDataPath, fileName + ".cache");
-
-        bool deletedSomething = false;
 
         if (File.Exists(jsonPath))
         {
             File.Delete(jsonPath);
             Debug.Log("[DeleteAIHistory] Deleted: " + jsonPath);
-            deletedSomething = true;
         }
 
         if (File.Exists(cachePath))
         {
             File.Delete(cachePath);
             Debug.Log("[DeleteAIHistory] Deleted: " + cachePath);
-            deletedSomething = true;
         }
 
-        if (!deletedSomething)
-        {
-            Debug.LogWarning("[DeleteAIHistory] No AI history files found at: " + jsonPath + " or " + cachePath);
-        }
+        Debug.Log("[DeleteAIHistory] Chat history cleared.");
+    }
+
+    void ClearLoadedHistory()
+    {
+        AIProviderRouter.Instance?.CancelRequests();
+
+        var llmCharacter = FindFirstObjectByType<LLMUnity.LLMCharacter>(FindObjectsInactive.Include);
+        if (llmCharacter != null) llmCharacter.ClearChat();
+
+        var chatBot = FindFirstObjectByType<LLMUnitySamples.ChatBot>(FindObjectsInactive.Include);
+        if (chatBot != null) chatBot.ClearChatBubbles();
     }
 }

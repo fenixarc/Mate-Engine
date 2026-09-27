@@ -4,6 +4,7 @@ using System.IO;
 using Newtonsoft.Json;
 using System;
 
+[DefaultExecutionOrder(-3000)]
 public class SaveLoadHandler : MonoBehaviour
 {
     public static SaveLoadHandler Instance { get; private set; }
@@ -179,6 +180,13 @@ public class SaveLoadHandler : MonoBehaviour
 
         public bool enableLocomotion = false;
 
+        //AI PROVIDER
+        public const string DefaultGeminiApiUrl = "https://generativelanguage.googleapis.com/v1beta";
+        public bool useGeminiAI = false;
+        public string geminiApiUrl = DefaultGeminiApiUrl;
+        public string geminiApiKeyEncrypted = "";
+        public string geminiModel = "";
+
 
         //ALARM
         [Serializable]
@@ -220,6 +228,7 @@ public class SaveLoadHandler : MonoBehaviour
         if (string.IsNullOrEmpty(data.selectedParticleTheme)) data.selectedParticleTheme = "Standard";
         if (data == null) data = new SettingsData();
         if (data.alarms == null) data.alarms = new List<SettingsData.AlarmEntry>();
+        if (string.IsNullOrWhiteSpace(data.geminiApiUrl)) data.geminiApiUrl = SettingsData.DefaultGeminiApiUrl;
         if (data.settingsVersion < 1)
         {
             data.settingsVersion = 1;

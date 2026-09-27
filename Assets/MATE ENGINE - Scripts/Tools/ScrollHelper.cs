@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using System.Collections.Generic;
 
 [RequireComponent(typeof(ScrollRect))]
 public class ScrollHelper : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
@@ -19,6 +20,7 @@ public class ScrollHelper : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     private RectTransform contentRT, viewportRT;
 
     private bool isPointerOver = false;
+    private static readonly List<RaycastResult> raycastResults = new List<RaycastResult>();
     private float pixelVelocity = 0f; // Pixel/Frame (wird geglättet)
 
     void Awake()
@@ -40,7 +42,7 @@ public class ScrollHelper : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
         if (isPointerOver)
         {
             float wheel = Input.GetAxis("Mouse ScrollWheel"); // + hoch, - runter (je nach OS)
-            if (Mathf.Abs(wheel) > 0.0001f)
+            if (Mathf.Abs(wheel) > 0.0001f && !IsOverNestedScrollArea())
             {
                 // in Pixel-Geschwindigkeit umrechnen
                 pixelVelocity += wheel * pixelsPerNotch * inputMultiplier;
@@ -62,6 +64,34 @@ public class ScrollHelper : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
             float decay = 1f - Mathf.Pow(1f - Mathf.Clamp01(smoothFactor), Time.unscaledDeltaTime * 60f);
             pixelVelocity = Mathf.Lerp(pixelVelocity, 0f, decay);
         }
+    }
+
+    // True when the pointer is over another scrollable ScrollRect inside this one (e.g. an open dropdown list),
+    // which should receive the mouse wheel instead of this menu.
+    bool IsOverNestedScrollArea()
+    {
+        var eventSystem = EventSystem.current;
+        if (eventSystem == null) return false;
+
+        var pointer = new PointerEventData(eventSystem) { position = Input.mousePosition };
+        raycastResults.Clear();
+        eventSystem.RaycastAll(pointer, raycastResults);
+        if (raycastResults.Count == 0) return false;
+
+        for (var t = raycastResults[0].gameObject.transform; t != null && t != transform; t = t.parent)
+        {
+            var nested = t.GetComponent<ScrollRect>();
+            if (nested != null && nested != scrollRect && nested.isActiveAndEnabled && CanScroll(nested)) return true;
+        }
+        return false;
+    }
+
+    static bool CanScroll(ScrollRect sr)
+    {
+        if (sr.content == null) return false;
+        var viewport = sr.viewport != null ? sr.viewport : (RectTransform)sr.transform;
+        return (sr.vertical && sr.content.rect.height > viewport.rect.height + 0.5f)
+            || (sr.horizontal && sr.content.rect.width > viewport.rect.width + 0.5f);
     }
 
     public void OnPointerEnter(PointerEventData eventData) => isPointerOver = true;

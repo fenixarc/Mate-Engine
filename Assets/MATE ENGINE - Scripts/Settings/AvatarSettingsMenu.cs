@@ -552,8 +552,16 @@ public class AvatarSettingsMenu : MonoBehaviour
             enableDiscordRPC = true,
             tutorialDone = oldData.tutorialDone,
             uiHueShift = 0f,
-            uiSaturation = 0.5f
+            uiSaturation = 0.5f,
+            // Keep the Gemini connection details; only switch back to the local model.
+            useGeminiAI = false,
+            geminiApiUrl = oldData.geminiApiUrl,
+            geminiApiKeyEncrypted = oldData.geminiApiKeyEncrypted,
+            geminiModel = oldData.geminiModel
         };
+        var aiProvider = FindFirstObjectByType<SettingsHandlerAIProvider>(FindObjectsInactive.Include);
+        if (aiProvider != null) aiProvider.ResetToDefaults();
+        else AIProviderRouter.Instance?.ApplyProviderChange(false);
         ResetAllLightsToDefault();
         ResetAllLightTogglesToDefault();
         SaveLoadHandler.Instance.data.lightIntensities.Clear();

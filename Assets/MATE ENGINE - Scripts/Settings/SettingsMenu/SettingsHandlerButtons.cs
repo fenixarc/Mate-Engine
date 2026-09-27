@@ -16,6 +16,7 @@ public class SettingsHandlerButtons : MonoBehaviour
     public SettingsHandlerLights lightsHandler;
     public SettingsHandlerAccessory accessoryHandler;
     public SettingsHandlerBigScreen bigScreenHandler;
+    public SettingsHandlerAIProvider aiProviderHandler;
 
     public VRMLoader vrmLoader;
     public GameObject uniWindowControllerObject;
@@ -57,6 +58,8 @@ public class SettingsHandlerButtons : MonoBehaviour
         lightsHandler?.ResetAllLightTogglesToDefault();
         accessoryHandler?.ResetToDefaults();
         bigScreenHandler?.ResetToDefaults();
+        if (aiProviderHandler == null) aiProviderHandler = FindFirstObjectByType<SettingsHandlerAIProvider>(FindObjectsInactive.Include);
+        aiProviderHandler?.ResetToDefaults();
         if (vrmLoader != null) vrmLoader.ResetModel();
         SaveLoadHandler.Instance.SaveToDisk();
     }

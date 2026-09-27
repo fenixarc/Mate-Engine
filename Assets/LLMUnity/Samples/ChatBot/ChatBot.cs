@@ -124,8 +124,27 @@ namespace LLMUnitySamples
             inputBubble.setInteractable(false);
 
             ShowLoadedMessages();
-            _ = llmCharacter.Warmup(WarmUpCallback);
+            if (AIProviderRouter.Instance != null)
+            {
+                AIProviderRouter.Instance.OnProviderChanged += OnProviderChanged;
+                _ = AIProviderRouter.Instance.Warmup(WarmUpCallback);
+            }
+            else _ = llmCharacter.Warmup(WarmUpCallback);
             FindAvatarSmart();
+        }
+
+        void OnDestroy()
+        {
+            if (AIProviderRouter.Instance != null) AIProviderRouter.Instance.OnProviderChanged -= OnProviderChanged;
+        }
+
+        void OnProviderChanged(bool useGemini)
+        {
+            if (inputBubble == null) return;
+            warmUpDone = false;
+            blockInput = true;
+            inputBubble.SetPlaceHolderText("Loading...");
+            _ = AIProviderRouter.Instance.Warmup(WarmUpCallback);
         }
 
         void FindAvatarSmart()
@@ -209,6 +228,15 @@ namespace LLMUnitySamples
             return bubble;
         }
 
+        // Removes all chat bubbles from the UI (used when the chat history is deleted).
+        public void ClearChatBubbles()
+        {
+            foreach (var bubble in chatBubbles) bubble.Destroy();
+            chatBubbles.Clear();
+            lastBubbleOutsideFOV = -1;
+            UpdateBubblePositions();
+        }
+
         void TrimHistoryIfNeeded()
         {
             if (maxMessages <= 0) return;
@@ -267,22 +295,23 @@ namespace LLMUnitySamples
                 streamAudioSource.Play();
             if (avatarAnimator != null) avatarAnimator.SetBool(isTalkingHash, true);
 
-            Task chatTask = llmCharacter.Chat(
-                message,
-                (partial) => { aiBubble.SetText(partial); layoutDirty = true; },
-                () =>
+            // The bubble may have been removed by "Delete Chat History" while the reply was streaming.
+            Callback<string> onPartial = (partial) => { if (chatBubbles.Contains(aiBubble)) { aiBubble.SetText(partial); layoutDirty = true; } };
+            EmptyCallback onComplete = () =>
                 {
                     if (avatarAnimator != null) avatarAnimator.SetBool(isTalkingHash, false);
 
-                    aiBubble.SetText(aiBubble.GetText());
+                    if (chatBubbles.Contains(aiBubble)) aiBubble.SetText(aiBubble.GetText());
                     layoutDirty = true;
 
                     if (streamAudioSource != null && streamAudioSource.isPlaying)
                         StartCoroutine(FadeOutStreamAudio());
 
                     AllowInput();
-                }
-            );
+                };
+            Task chatTask = AIProviderRouter.Instance != null
+                ? AIProviderRouter.Instance.Chat(message, onPartial, onComplete)
+                : llmCharacter.Chat(message, onPartial, onComplete);
             inputBubble.SetText("");
         }
 
@@ -315,7 +344,8 @@ namespace LLMUnitySamples
 
         public void CancelRequests()
         {
-            llmCharacter.CancelRequests();
+            if (AIProviderRouter.Instance != null) AIProviderRouter.Instance.CancelRequests();
+            else llmCharacter.CancelRequests();
             AllowInput();
         }
 
