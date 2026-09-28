@@ -43,6 +43,20 @@ public class AvatarAnimatorController : MonoBehaviour
     private static readonly int isFemaleParam = Animator.StringToHash("isFemale");
 
     [Header("BPM Sync")]
+    [Tooltip("Limits for the Dance state's speed multiplier (music BPM / dance BPM).")]
+    public float minDanceSpeed = 0.6f;
+    public float maxDanceSpeed = 1.35f;
+    [Tooltip("Never drive a dance faster than this many of its own beats per minute; use half time instead.")]
+    public float maxVisibleDanceBpm = 160f;
+    [Tooltip("How fast the dance speed moves toward its target, in speed units per second.")]
+    public float danceSpeedLerpRate = 0.5f;
+
+    private static readonly int danceSpeedParam = Animator.StringToHash("DanceSpeed");
+    private static readonly int isCustomDancingParam = Animator.StringToHash("isCustomDancing");
+    private RuntimeAnimatorController paramCacheController;
+    private bool hasDanceSpeedParam, hasCustomDancingParam;
+    private float currentDanceSpeed = 1f;
+
     private AudioSessionControl activeAudioSession;
     private List<float> bpmHistory = new List<float>();
     private float lastBeatTime = 0f;
@@ -104,7 +118,7 @@ public class AvatarAnimatorController : MonoBehaviour
         animator.SetBool(isDancingParam, value);
         if (!value)
         {
-            animator.speed = 1f; // Reset speed when not dancing
+            ResetDanceSpeed();
             bpmHistory.Clear();
             activeAudioSession = null;
             if (danceTransitionCoroutine != null)
@@ -201,6 +215,7 @@ public class AvatarAnimatorController : MonoBehaviour
         if (isDancing)
         {
             ProcessBpmSync();
+            UpdateDanceSpeed();
         }
 
         if (isDancing && enableDanceSwitch)
@@ -260,9 +275,6 @@ public class AvatarAnimatorController : MonoBehaviour
                     float sum = 0f;
                     for (int i = 0; i < bpmHistory.Count; i++) sum += bpmHistory[i];
                     currentEstimatedBPM = sum / bpmHistory.Count;
-
-                    // Update animator speed (assuming default dance animations are authored for 120 BPM)
-                    animator.speed = Mathf.Clamp(currentEstimatedBPM / 120f, 0.5f, 1.5f);
                 }
                 
                 if (timeSinceLastBeat > 0.25f) // Prevent rapid double-triggering
@@ -275,7 +287,58 @@ public class AvatarAnimatorController : MonoBehaviour
         catch 
         { 
             // In case session becomes invalid
-            activeAudioSession = null; 
+            activeAudioSession = null;
+        }
+    }
+
+    // Scales only the Dance state (via its DanceSpeed multiplier), leaving animator.speed and other layers alone.
+    void UpdateDanceSpeed()
+    {
+        RefreshParamCache();
+        if (!hasDanceSpeedParam) return;
+
+        float target = 1f;
+        bool customDancing = hasCustomDancingParam && animator.GetBool(isCustomDancingParam);
+        if (!customDancing && bpmHistory.Count > 0)
+        {
+            var table = DanceTempoTable.Instance;
+            float danceBpm = table != null ? table.GetIndexBpm(animator.GetFloat(danceIndexParam), enableHusbandoMode) : 0f;
+            if (danceBpm > 0f) target = GetTargetDanceSpeed(currentEstimatedBPM, danceBpm);
+        }
+
+        currentDanceSpeed = Mathf.MoveTowards(currentDanceSpeed, target, danceSpeedLerpRate * Time.deltaTime);
+        animator.SetFloat(danceSpeedParam, currentDanceSpeed);
+    }
+
+    float GetTargetDanceSpeed(float musicBpm, float danceBpm)
+    {
+        // Fold into half/double time so the dance is stretched as little as possible.
+        float r = musicBpm / danceBpm;
+        while (r >= 1.41421f) r *= 0.5f;
+        while (r < 0.70711f) r *= 2f;
+        // Double time on an already-fast dance looks frantic; drop to half time instead.
+        if (danceBpm * r > maxVisibleDanceBpm) r *= 0.5f;
+        return Mathf.Clamp(r, minDanceSpeed, maxDanceSpeed);
+    }
+
+    void ResetDanceSpeed()
+    {
+        currentDanceSpeed = 1f;
+        RefreshParamCache();
+        if (hasDanceSpeedParam) animator.SetFloat(danceSpeedParam, 1f);
+    }
+
+    void RefreshParamCache()
+    {
+        var rc = animator.runtimeAnimatorController;
+        if (rc == paramCacheController) return;
+        paramCacheController = rc;
+        hasDanceSpeedParam = hasCustomDancingParam = false;
+        if (rc == null) return;
+        foreach (var p in animator.parameters)
+        {
+            if (p.nameHash == danceSpeedParam && p.type == AnimatorControllerParameterType.Float) hasDanceSpeedParam = true;
+            else if (p.nameHash == isCustomDancingParam && p.type == AnimatorControllerParameterType.Bool) hasCustomDancingParam = true;
         }
     }
 
