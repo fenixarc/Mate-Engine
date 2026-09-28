@@ -43,6 +43,9 @@ public class AvatarAnimatorController : MonoBehaviour
     private static readonly int isFemaleParam = Animator.StringToHash("isFemale");
 
     [Header("BPM Sync")]
+    public bool enableBpmSync = true;
+    [Tooltip("Tempo estimates below this confidence are ignored (dance plays at normal speed).")]
+    public float minBpmConfidence = 0.3f;
     [Tooltip("Limits for the Dance state's speed multiplier (music BPM / dance BPM).")]
     public float minDanceSpeed = 0.6f;
     public float maxDanceSpeed = 1.35f;
@@ -57,12 +60,13 @@ public class AvatarAnimatorController : MonoBehaviour
     private bool hasDanceSpeedParam, hasCustomDancingParam;
     private float currentDanceSpeed = 1f;
 
-    private AudioSessionControl activeAudioSession;
-    private List<float> bpmHistory = new List<float>();
-    private float lastBeatTime = 0f;
-    private float dynamicBeatThreshold = 0.05f;
-    private float currentEstimatedBPM = 120f;
-    private float lastValidSoundTime = 0f;
+    [Header("BPM Sync (read only, for testing)")]
+    public float detectedMusicBpm;
+    public float bpmConfidence;
+    public string bpmCaptureMode = "Off";
+
+    private int activeAudioPid;
+    private AppAudioCapture bpmCapture;
 
 
     void OnEnable()
@@ -101,7 +105,35 @@ public class AvatarAnimatorController : MonoBehaviour
             bool valid = IsValidAppPlaying();
             if (valid && !isDancing) StartDancing();
             else if (!valid && isDancing) SetDancing(false);
+            if (isDancing) EnsureBpmCapture();
         }
+        // Other code (e.g. SaveLoadHandler.ApplyAllSettingsToAllAvatars) can clear isDancing directly;
+        // never leave a capture running while not dancing.
+        if (!isDancing) PauseBpmCapture();
+    }
+
+    // Captures the playing allowed app's audio while dancing; switches if a different app takes over.
+    // Captures are pooled by AppAudioCapture and paused (not destroyed) when not needed.
+    void EnsureBpmCapture()
+    {
+        if (!enableBpmSync) { PauseBpmCapture(); return; }
+        if (activeAudioPid == 0) return; // keep the current capture through the silence grace period
+        if (bpmCapture != null && bpmCapture.TargetPid == activeAudioPid) return;
+
+        PauseBpmCapture();
+        bpmCapture = AppAudioCapture.Acquire(activeAudioPid);
+        bpmCapture.Tracker.LoudThreshold = SOUND_THRESHOLD;
+    }
+
+    void PauseBpmCapture()
+    {
+        if (bpmCapture == null) return;
+        bpmCapture.Pause();
+        bpmCapture = null;
+        detectedMusicBpm = 0f;
+        bpmConfidence = 0f;
+        bpmCaptureMode = "Off";
+        lastShownMode = AppAudioCapture.CaptureMode.Stopped;
     }
 
     void StartDancing()
@@ -119,8 +151,7 @@ public class AvatarAnimatorController : MonoBehaviour
         if (!value)
         {
             ResetDanceSpeed();
-            bpmHistory.Clear();
-            activeAudioSession = null;
+            PauseBpmCapture();
             if (danceTransitionCoroutine != null)
             {
                 StopCoroutine(danceTransitionCoroutine);
@@ -152,7 +183,7 @@ public class AvatarAnimatorController : MonoBehaviour
                         for (int j = 0; j < allowedApps.Count; j++)
                             if (pname.StartsWith(allowedApps[j], System.StringComparison.OrdinalIgnoreCase))
                             {
-                                activeAudioSession = s; // Track the session
+                                activeAudioPid = pid;
                                 return true;
                             }
                     }
@@ -162,12 +193,12 @@ public class AvatarAnimatorController : MonoBehaviour
         }
         catch { defaultDevice?.Dispose(); defaultDevice = null; }
         
-        // If we are currently dancing, and heard a peak recently, ignore this silence.
-        if (isDancing && Time.time - lastValidSoundTime < 1.5f) {
-            return true;
-        }
+        activeAudioPid = 0;
 
-        activeAudioSession = null;
+        // If we are currently dancing and the captured app was loud recently, ignore this silence.
+        if (isDancing && bpmCapture != null && bpmCapture.Tracker.SecondsSinceLoud < 1.5)
+            return true;
+
         return false;
     }
 
@@ -212,11 +243,7 @@ public class AvatarAnimatorController : MonoBehaviour
         }
         UpdateIdleStatus();
 
-        if (isDancing)
-        {
-            ProcessBpmSync();
-            UpdateDanceSpeed();
-        }
+        if (isDancing) UpdateDanceSpeed();
 
         if (isDancing && enableDanceSwitch)
         {
@@ -241,73 +268,40 @@ public class AvatarAnimatorController : MonoBehaviour
         animator.SetBool(isDraggingParam, value);
     }
 
-    void ProcessBpmSync()
-    {
-        if (activeAudioSession == null) return;
-        try
-        {
-            float peak = activeAudioSession.AudioMeterInformation.MasterPeakValue;
-            if (peak > SOUND_THRESHOLD) lastValidSoundTime = Time.time;
-            
-            // Slower dynamic threshold decay naturally filters out weaker off-beats (eighth notes)
-            dynamicBeatThreshold = Mathf.Lerp(dynamicBeatThreshold, SOUND_THRESHOLD, Time.deltaTime * 0.5f);
-            
-            if (peak > dynamicBeatThreshold && peak > SOUND_THRESHOLD * 1.5f)
-            {
-                float timeSinceLastBeat = Time.time - lastBeatTime;
-                
-                // Expand range to catch variations, but use logic to normalize
-                if (timeSinceLastBeat > 0.25f && timeSinceLastBeat < 1.5f)
-                {
-                    float instantaneousBPM = 60f / timeSinceLastBeat;
-                    
-                    // If the detected BPM is very fast (> 135), we likely caught eighth notes 
-                    // of a slower song, or it's a fast song where half-time dancing looks better.
-                    if (instantaneousBPM > 135f)
-                    {
-                        instantaneousBPM /= 2f;
-                    }
-
-                    bpmHistory.Add(instantaneousBPM);
-                    if (bpmHistory.Count > 16) bpmHistory.RemoveAt(0); // keep last 16 beats
-
-                    // Calculate average
-                    float sum = 0f;
-                    for (int i = 0; i < bpmHistory.Count; i++) sum += bpmHistory[i];
-                    currentEstimatedBPM = sum / bpmHistory.Count;
-                }
-                
-                if (timeSinceLastBeat > 0.25f) // Prevent rapid double-triggering
-                {
-                    lastBeatTime = Time.time;
-                    dynamicBeatThreshold = peak; // Jump threshold to current peak
-                }
-            }
-        }
-        catch 
-        { 
-            // In case session becomes invalid
-            activeAudioSession = null;
-        }
-    }
-
     // Scales only the Dance state (via its DanceSpeed multiplier), leaving animator.speed and other layers alone.
     void UpdateDanceSpeed()
     {
         RefreshParamCache();
         if (!hasDanceSpeedParam) return;
 
+        if (!enableBpmSync) PauseBpmCapture();
+        float musicBpm = ReadMusicBpm();
+
         float target = 1f;
         bool customDancing = hasCustomDancingParam && animator.GetBool(isCustomDancingParam);
-        if (!customDancing && bpmHistory.Count > 0)
+        if (!customDancing && musicBpm > 0f)
         {
             var table = DanceTempoTable.Instance;
             float danceBpm = table != null ? table.GetIndexBpm(animator.GetFloat(danceIndexParam), enableHusbandoMode) : 0f;
-            if (danceBpm > 0f) target = GetTargetDanceSpeed(currentEstimatedBPM, danceBpm);
+            if (danceBpm > 0f) target = GetTargetDanceSpeed(musicBpm, danceBpm);
         }
 
         currentDanceSpeed = Mathf.MoveTowards(currentDanceSpeed, target, danceSpeedLerpRate * Time.deltaTime);
         animator.SetFloat(danceSpeedParam, currentDanceSpeed);
+    }
+
+    AppAudioCapture.CaptureMode lastShownMode = AppAudioCapture.CaptureMode.Stopped;
+
+    // Music tempo from the capture thread, or 0 when unknown / not confident.
+    float ReadMusicBpm()
+    {
+        if (bpmCapture == null) return 0f;
+        var tracker = bpmCapture.Tracker;
+        detectedMusicBpm = tracker.HasTempo ? tracker.Bpm : 0f;
+        bpmConfidence = tracker.Confidence;
+        var mode = bpmCapture.Mode;
+        if (mode != lastShownMode) { lastShownMode = mode; bpmCaptureMode = mode.ToString(); }
+        return tracker.HasTempo && tracker.Confidence >= minBpmConfidence ? tracker.Bpm : 0f;
     }
 
     float GetTargetDanceSpeed(float musicBpm, float danceBpm)
@@ -383,6 +377,7 @@ public class AvatarAnimatorController : MonoBehaviour
         if (soundCheckCoroutine != null) { StopCoroutine(soundCheckCoroutine); soundCheckCoroutine = null; }
         if (idleTransitionCoroutine != null) { StopCoroutine(idleTransitionCoroutine); idleTransitionCoroutine = null; }
         if (danceTransitionCoroutine != null) { StopCoroutine(danceTransitionCoroutine); danceTransitionCoroutine = null; }
+        PauseBpmCapture();
         defaultDevice?.Dispose(); defaultDevice = null;
         enumerator?.Dispose(); enumerator = null;
     }
