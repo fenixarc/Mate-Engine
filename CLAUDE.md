@@ -49,6 +49,12 @@ Code comments are sometimes in German. Keep the surrounding style, which is plai
 3. Apply it in `ApplyAllSettingsToAllAvatars()`.
 4. Wire the UI in the matching `Settings/SettingsMenu/SettingsHandler*.cs` (Toggles, Sliders, Dropdowns, and so on), with `AvatarSettingsMenu.cs` as the menu root.
 
+**Adding controls to the settings menu.** Don't hand-edit the scene YAML. Write a one-shot Editor builder on top of `Assets/Editor/MESettingsUIKit.cs`, and copy the pattern in `MEBpmSyncSettingsBuilder.cs`: dry run, Undo, rebuild-safe, wired handler fields, copied tooltip. The kit's header comment lists the layout rules. The ones that broke earlier attempts:
+- Lay out in the settings canvas's local space, because the canvas is saved inactive at scale 0.
+- Section backgrounds follow their headers through **locked `PositionConstraint`s**. Use `PushDown`, which fixes their offsets, instead of only moving rects.
+- Rows are nested, so push siblings at every level down to the main menu, then call `GrowScroll`.
+Run the builder's dry run in batch mode (`-executeMethod <Builder>.ReportBatch`) before building. Check the result in Play Mode.
+
 **Multi-instance.** Up to 9 avatars run as separate processes. `VRMLoader/LaunchMateEngineInstance.cs` launches copies of the app with `--instance N --savefile <file> --datadir <dir>`, and `SaveLoadHandler` reads `--savefile` and `--datadir` to isolate each instance's settings. Dance sync between instances goes through `AvatarDanceSync` / `AvatarSyncDanceTools` and `Sync/dance_sync.json`.
 
 **Avatar loading.** `VRMLoader/VRMLoader.cs` loads `.vrm` files through UniVRM/VRM10, and loads `.me` files and prefab asset bundles through `LoadAssetBundleModel`. It then:
@@ -75,7 +81,7 @@ Code comments are sometimes in German. Keep the surrounding style, which is plai
   - Both providers share `llmCharacter.chat` and the `ZomeAI` history file. In Gemini mode the router writes the history JSON itself, because `LLMCharacter.Save` needs the local server for the cache slot.
   - Settings live in `SettingsData` (`useGeminiAI`, `geminiApiUrl`, `geminiApiKeyEncrypted`, `geminiModel`), and the UI is `Settings/SettingsMenu/SettingsHandlerAIProvider.cs`.
   - The API key is encrypted with Windows DPAPI via `APIs/SecureStore.cs` and is never stored in plain text.
-  - The settings controls were made by the one-shot Editor tool `MateEngine/Build Gemini AI Settings UI` (`Assets/Editor/MEGeminiSettingsBuilder.cs`).
+  - The settings controls were built once by an Editor tool that has since been removed. They now live only in the scene.
 
 `SaveLoadHandler` runs at `DefaultExecutionOrder(-3000)` so that other scripts can read settings in `Awake`.
 
