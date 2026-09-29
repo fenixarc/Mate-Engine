@@ -27,6 +27,7 @@ public sealed class AppAudioCapture
     const int StreamFlagsEventCallback = 0x00040000;
     const int StreamFlagsAutoConvertPcm = unchecked((int)0x80000000);
     const int BufferFlagsSilent = 0x2;
+    const int BufferFlagsTimestampError = 0x4;
     const int E_UNEXPECTED = unchecked((int)0x8000FFFF);
 
     public readonly BeatTracker Tracker = new BeatTracker();
@@ -227,10 +228,12 @@ public sealed class AppAudioCapture
                 evt.WaitOne(50);
                 while (run && !paused && capture.GetNextPacketSize(out int packet) >= 0 && packet > 0)
                 {
-                    Check(capture.GetBuffer(out IntPtr data, out int frames, out int bufferFlags, out _, out _));
+                    Check(capture.GetBuffer(out IntPtr data, out int frames, out int bufferFlags, out _, out long qpc100ns));
                     ToMono(data, frames, channels, bits, isFloat, (bufferFlags & BufferFlagsSilent) != 0);
                     capture.ReleaseBuffer(frames);
-                    Tracker.Process(mono, frames);
+                    // The packet's QPC time (100 ns units, same clock as BeatTracker.Now100ns); 0 = let the tracker estimate.
+                    long ticks = qpc100ns > 0 && (bufferFlags & BufferFlagsTimestampError) == 0 ? qpc100ns : 0;
+                    Tracker.Process(mono, frames, ticks);
                 }
             }
         }

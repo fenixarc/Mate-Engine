@@ -46,7 +46,7 @@ public class BeatTrackerTestWindow : EditorWindow
     static string RunSynthetic(float bpm, bool drums, float seconds)
     {
         var samples = drums ? MakeDrums(bpm, seconds) : MakeClicks(bpm, seconds);
-        return $"Synthetic {(drums ? "drums+pad" : "clicks")} {bpm:0.#} BPM\n" + Feed(samples, Rate);
+        return $"Synthetic {(drums ? "drums+pad" : "clicks")} {bpm:0.#} BPM\n" + Feed(samples, Rate, bpm);
     }
 
     static string RunFile(string path)
@@ -69,7 +69,8 @@ public class BeatTrackerTestWindow : EditorWindow
         }
     }
 
-    static string Feed(float[] samples, int rate)
+    // trueBpm > 0: the signal has a beat at t = 0 and every 60/trueBpm s after; the beat clock's phase error is reported.
+    static string Feed(float[] samples, int rate, float trueBpm = 0f)
     {
         var tracker = new BeatTracker();
         tracker.Configure(rate);
@@ -77,14 +78,15 @@ public class BeatTrackerTestWindow : EditorWindow
         var sb = new StringBuilder();
         var sw = Stopwatch.StartNew();
         int nextReport = rate * 2;
+        const long baseTicks = 1_000_000_000L;   // arbitrary QPC time (100 ns) of sample 0
         for (int pos = 0; pos < samples.Length; pos += Chunk)
         {
             int n = Mathf.Min(Chunk, samples.Length - pos);
             System.Array.Copy(samples, pos, chunk, 0, n);
-            tracker.Process(chunk, n);
+            tracker.Process(chunk, n, baseTicks + (long)(pos * BeatTracker.TicksPerSecond / rate));
             if (pos >= nextReport)
             {
-                sb.AppendLine($"  t={pos / (float)rate,5:0.0}s  bpm={(tracker.HasTempo ? tracker.Bpm.ToString("0.0") : "-"),6}  conf={tracker.Confidence:0.00}");
+                sb.AppendLine($"  t={pos / (float)rate,5:0.0}s  bpm={(tracker.HasTempo ? tracker.Bpm.ToString("0.0") : "-"),6}  conf={tracker.Confidence:0.00}{PhaseReport(tracker, baseTicks, trueBpm)}");
                 nextReport += rate * 2;
             }
         }
@@ -93,6 +95,18 @@ public class BeatTrackerTestWindow : EditorWindow
         sb.AppendLine($"  FINAL bpm={(tracker.HasTempo ? tracker.Bpm.ToString("0.0") : "none")} conf={tracker.Confidence:0.00}  " +
                       $"(cpu {sw.Elapsed.TotalMilliseconds:0} ms for {audioSec:0} s audio = {100.0 * sw.Elapsed.TotalSeconds / audioSec:0.00}% of one core)");
         return sb.ToString();
+    }
+
+    // Beat clock vs the true grid, wrapped by the finer of the two periods (the tracker may sit on half/double time).
+    static string PhaseReport(BeatTracker tracker, long baseTicks, float trueBpm)
+    {
+        if (!tracker.TryGetBeatClock(out long anchor, out double period, out float conf)) return "";
+        string s = $"  clock={60.0 / period:0.00} BPM phaseConf={conf:0.00}";
+        if (trueBpm <= 0f) return s;
+        double e = (anchor - baseTicks) / BeatTracker.TicksPerSecond;
+        double fine = System.Math.Min(60.0 / trueBpm, period);
+        e -= System.Math.Round(e / fine) * fine;
+        return s + $" phaseErr={e * 1000:0} ms";
     }
 
     static string ProbeCapture()

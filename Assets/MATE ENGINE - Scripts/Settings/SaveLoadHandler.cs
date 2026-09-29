@@ -115,6 +115,7 @@ public class SaveLoadHandler : MonoBehaviour
         public float idleTransitionTime = 1f;
         public bool enableDanceSwitch = false;
         public bool enableBpmSync = true;
+        public float bpmBeatOffsetMs = 30f;
         public float danceSwitchTime = 15f;
         public float danceTransitionTime = 2f;
         public float avatarSize = 1.0f;
@@ -263,6 +264,7 @@ public class SaveLoadHandler : MonoBehaviour
             avatar.DANCE_TRANSITION_TIME = data.danceTransitionTime;
             avatar.enableDanceSwitch = data.enableDanceSwitch;
             avatar.enableBpmSync = data.enableBpmSync;
+            avatar.beatOffsetMs = data.bpmBeatOffsetMs;
             avatar.enableHusbandoMode = data.enableHusbandoMode;
 
             foreach (var tracker in avatar.GetComponentsInChildren<AvatarMouseTracking>(true))

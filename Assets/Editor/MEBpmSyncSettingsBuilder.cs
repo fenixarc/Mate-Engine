@@ -9,7 +9,7 @@ using UnityEngine.Animations;
 using UnityEngine.UI;
 using G = MEGeminiSettingsBuilder;
 
-// One-shot tool that adds the "BPM DANCE SYNC" checkbox (+ a sub-note) under "Enable Dance Transitions"
+// One-shot tool that adds the "BPM DANCE SYNC" checkbox (+ a sub-note and a beat offset slider) under "Enable Dance Transitions"
 // in the "= DANCING" settings section, pushes everything below it down, and grows the section background.
 // Section backgrounds (Category Background/Image (N)) follow their headers through locked PositionConstraints,
 // so their offsets are unlocked, corrected, and re-locked here. Layout is done in the settings canvas's local
@@ -25,7 +25,12 @@ public static class MEBpmSyncSettingsBuilder
         "BPM dance sync matches the avatar's dance speed to the tempo of the music playing in your allowed apps. " +
         "On Windows 10 version 2004 or newer, it listens only to the app playing the music. " +
         "Older versions of Windows can only listen to all system audio, so game sounds, notifications or voice chat " +
-        "may throw off the tempo and make the dance speed jump.";
+        "may throw off the tempo and make the dance speed jump. " +
+        "Works better with a longer Dance Change Time.";
+    const float SliderMin = -100f, SliderMax = 400f;
+    const string SliderTooltipText =
+        "Lines the dance steps up with the beat you hear. If the avatar steps before the beat (common with Bluetooth " +
+        "headphones, which delay the sound), raise it; if it steps after the beat, lower it.";
     const string ScenePath = "Assets/MATE ENGINE - Scenes/Mate Engine Main.unity";
 
     [MenuItem("MateEngine/Build BPM Sync Settings UI")]
@@ -91,9 +96,14 @@ public static class MEBpmSyncSettingsBuilder
         var label = anchor.GetComponentsInChildren<TMP_Text>(true).FirstOrDefault();
         if (label == null) return Fail("The Enable Dance Transitions toggle has no TMP label to copy.", interactive);
 
+        var sliders = G.Find<SettingsHandlerSliders>();
+        var sliderTemplate = sliders != null ? sliders.soundThresholdSlider : null;
+        if (sliderTemplate == null) return Fail("SettingsHandlerSliders.soundThresholdSlider (the slider row to copy) was not found.", interactive);
+        Rect sliderTemplateBounds = G.SpaceBounds((RectTransform)sliderTemplate.transform);
+
         if (!apply)
         {
-            float estimate = rowH + gap + rowH * 0.6f;
+            float estimate = rowH + gap + rowH * 0.6f + gap * 0.6f + sliderTemplateBounds.height;
             log.AppendLine($"would add about {estimate:0.#} units");
             PushDown(mainMenu, anchorRt, null, anchorBounds.yMin, estimate, false, log);
             Debug.Log(log.ToString());
@@ -118,6 +128,21 @@ public static class MEBpmSyncSettingsBuilder
         noteText.color = NoteColor;
         cursor = G.Place(note, labelRect.xMin, cursor - gap * 0.2f);
 
+        // Beat offset slider, indented under the checkbox like the note (it is a BPM-sync sub-setting).
+        var sliderGo = G.Clone(sliderTemplate.gameObject, root, "BPM Beat Offset Slider");
+        var slider = sliderGo.GetComponent<Slider>();
+        slider.wholeNumbers = true;
+        slider.minValue = SliderMin;
+        slider.maxValue = SliderMax;
+        slider.SetValueWithoutNotify(SettingsHandlerSliders.DefaultBpmBeatOffsetMs);
+        var sliderLabel = sliderGo.GetComponentsInChildren<TMP_Text>(true).FirstOrDefault();
+        if (sliderLabel != null) sliderLabel.text = $"BEAT OFFSET: {SettingsHandlerSliders.DefaultBpmBeatOffsetMs:0} MS";
+        var sliderRt = (RectTransform)sliderGo.transform;
+        Rect sliderRect = G.SpaceRect(sliderRt);
+        float indent = labelRect.xMin - sliderTemplateBounds.xMin;
+        if (indent > 0f && indent < sliderRect.width * 0.5f) G.SetSpaceSize(sliderRt, sliderRect.width - indent, sliderRect.height);
+        cursor = G.Place(sliderGo.transform, labelRect.xMin, cursor - gap * 0.6f);
+
         float added = anchorBounds.yMin - cursor;
         log.AppendLine($"added {added:0.#} units");
         PushDown(mainMenu, anchorRt, root, anchorBounds.yMin, added, true, log);
@@ -126,8 +151,14 @@ public static class MEBpmSyncSettingsBuilder
 
         Undo.RecordObject(toggles, "Wire BPM sync toggle");
         toggles.enableBpmSyncToggle = toggle;
-        CopyTooltip(anchor, toggle, log);
+        CopyTooltip(anchor, toggle, TooltipText, log);
         EditorUtility.SetDirty(toggles);
+
+        Undo.RecordObject(sliders, "Wire BPM beat offset slider");
+        sliders.bpmBeatOffsetSlider = slider;
+        sliders.bpmBeatOffsetLabel = sliderLabel;
+        CopyTooltip(sliderTemplate, slider, SliderTooltipText, log);
+        EditorUtility.SetDirty(sliders);
 
         Undo.CollapseUndoOperations(undoGroup);
         EditorSceneManager.MarkSceneDirty(section.gameObject.scene);
@@ -148,14 +179,14 @@ public static class MEBpmSyncSettingsBuilder
             return;
         }
         var log = new StringBuilder("[BPM Sync UI] TOOLTIP\n");
-        if (CopyTooltip(toggles.enableDanceSwitchToggle, toggles.enableBpmSyncToggle, log))
+        if (CopyTooltip(toggles.enableDanceSwitchToggle, toggles.enableBpmSyncToggle, TooltipText, log))
             EditorSceneManager.SaveScene(scene);
         Debug.Log(log.ToString());
     }
 
-    // Copies the source toggle's UiTooltip (look, delay, hover zone, offsets) onto target and sets the BPM text.
+    // Copies the source control's UiTooltip (look, delay, hover zone, offsets) onto target and sets the text.
     // Uses tooltipText with no locKey, like the rest of the BPM UI, which is English-only.
-    static bool CopyTooltip(Toggle source, Toggle target, StringBuilder log)
+    static bool CopyTooltip(Component source, Component target, string text, StringBuilder log)
     {
         var src = source.GetComponent<UiTooltip>();
         if (src == null) { log.AppendLine("  source toggle has no UiTooltip"); return false; }
@@ -165,7 +196,7 @@ public static class MEBpmSyncSettingsBuilder
         Undo.RecordObject(tip, "BPM sync tooltip");
         EditorUtility.CopySerialized(src, tip);
         tip.locKey = "";
-        tip.tooltipText = TooltipText;
+        tip.tooltipText = text;
         EditorUtility.SetDirty(tip);
         EditorSceneManager.MarkSceneDirty(target.gameObject.scene);
         log.AppendLine($"  tooltip copied from {src.name} onto {G.GetPath(target.transform)}");
@@ -176,6 +207,10 @@ public static class MEBpmSyncSettingsBuilder
     // parent up to the main menu, then fixes the section backgrounds and their locked constraints.
     static void PushDown(Transform mainMenu, RectTransform anchor, RectTransform skip, float insertY, float amount, bool apply, StringBuilder log)
     {
+        var bg = mainMenu.Find("Category Background");
+        // Measured before anything moves: moving the rows first would skew the constraint offsets it is read from.
+        float k = bg != null ? ConstraintRatio(bg, log) : 0f;
+
         var moved = new HashSet<Transform>();
         for (Transform level = anchor; level != null && level != mainMenu; level = level.parent)
         {
@@ -197,23 +232,7 @@ public static class MEBpmSyncSettingsBuilder
             if (levelParent == mainMenu) break;
         }
 
-        var bg = mainMenu.Find("Category Background");
         if (bg == null) { log.AppendLine("  no Category Background"); return; }
-
-        // World units per canvas unit, from the existing locked constraints.
-        var ratios = new List<float>();
-        foreach (Transform t in bg)
-        {
-            var pc = t.GetComponent<PositionConstraint>();
-            if (pc == null || pc.sourceCount == 0 || !(t is RectTransform rt)) continue;
-            var src = pc.GetSource(0).sourceTransform as RectTransform;
-            if (src == null) continue;
-            float d = PivotY(rt) - PivotY(src);
-            if (Mathf.Abs(d) > 1f) ratios.Add(pc.translationOffset.y / d);
-        }
-        ratios.Sort();
-        float k = ratios.Count > 0 ? ratios[ratios.Count / 2] : 0f;
-        log.AppendLine($"  constraint world/canvas ratio k = {k:0.####} (from {ratios.Count} constraints)");
 
         foreach (Transform t in bg)
         {
@@ -249,6 +268,25 @@ public static class MEBpmSyncSettingsBuilder
                 EditorUtility.SetDirty(pc);
             }
         }
+    }
+
+    // World units per canvas unit, from the existing locked constraints (median).
+    static float ConstraintRatio(Transform bg, StringBuilder log)
+    {
+        var ratios = new List<float>();
+        foreach (Transform t in bg)
+        {
+            var pc = t.GetComponent<PositionConstraint>();
+            if (pc == null || pc.sourceCount == 0 || !(t is RectTransform rt)) continue;
+            var src = pc.GetSource(0).sourceTransform as RectTransform;
+            if (src == null) continue;
+            float d = PivotY(rt) - PivotY(src);
+            if (Mathf.Abs(d) > 1f) ratios.Add(pc.translationOffset.y / d);
+        }
+        ratios.Sort();
+        float k = ratios.Count > 0 ? ratios[ratios.Count / 2] : 0f;
+        log.AppendLine($"  constraint world/canvas ratio k = {k:0.####} (from {ratios.Count} constraints)");
+        return k;
     }
 
     static float PivotY(RectTransform rt) => G.ToSpace(rt, new Vector2(0f, 0f)).y;

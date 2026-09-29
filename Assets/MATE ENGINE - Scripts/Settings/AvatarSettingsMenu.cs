@@ -608,8 +608,9 @@ public class AvatarSettingsMenu : MonoBehaviour
         newData.enableIK = true;
         enableIKToggle?.SetIsOnWithoutNotify(true);
         FindFirstObjectByType<AvatarScaleController>()?.SyncWithSlider();
-        // BPM Dance Sync lives on SettingsHandlerToggles; newData already defaults it to on.
+        // BPM Dance Sync lives on SettingsHandlerToggles/Sliders; newData already holds their defaults.
         FindFirstObjectByType<SettingsHandlerToggles>(FindObjectsInactive.Include)?.enableBpmSyncToggle?.SetIsOnWithoutNotify(true);
+        FindFirstObjectByType<SettingsHandlerSliders>(FindObjectsInactive.Include)?.SetBpmBeatOffsetWithoutNotify(newData.bpmBeatOffsetMs);
         ApplySettings();
 
         var shifter = FindFirstObjectByType<MenuHueShift>();
