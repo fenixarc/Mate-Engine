@@ -17,6 +17,7 @@ public class SettingsHandlerToggles : MonoBehaviour
     public Toggle ambientOcclusionToggle;
     public Toggle enableIKToggle;
     public Toggle enableDanceSwitchToggle;
+    public Toggle enableBpmSyncToggle;
     public Toggle enableRandomMessagesToggle;
     public Toggle enableHusbandoModeToggle;
     public Toggle enableAutoMemoryTrimToggle;
@@ -52,6 +53,7 @@ public class SettingsHandlerToggles : MonoBehaviour
         ambientOcclusionToggle?.onValueChanged.AddListener(OnAmbientOcclusionChanged);
         enableIKToggle?.onValueChanged.AddListener(OnEnableIKChanged);
         enableDanceSwitchToggle?.onValueChanged.AddListener(OnEnableDanceSwitchChanged);
+        enableBpmSyncToggle?.onValueChanged.AddListener(OnEnableBpmSyncChanged);
         enableRandomMessagesToggle?.onValueChanged.AddListener(OnEnableRandomMessagesChanged);
         enableHusbandoModeToggle?.onValueChanged.AddListener(OnEnableHusbandoModeChanged);
         enableAutoMemoryTrimToggle?.onValueChanged.AddListener(OnEnableAutoMemoryTrimChanged);
@@ -77,6 +79,7 @@ public class SettingsHandlerToggles : MonoBehaviour
     private void OnAmbientOcclusionChanged(bool v) { SaveLoadHandler.Instance.data.ambientOcclusion = v; ApplySettings(); Save(); }
     private void OnEnableIKChanged(bool v) { SaveLoadHandler.Instance.data.enableIK = v; ApplySettings(); Save(); }
     private void OnEnableDanceSwitchChanged(bool v) { SaveLoadHandler.Instance.data.enableDanceSwitch = v; Save(); }
+    private void OnEnableBpmSyncChanged(bool v) { SaveLoadHandler.Instance.data.enableBpmSync = v; Save(); }
     private void OnEnableAutoMemoryTrimChanged(bool v) { SaveLoadHandler.Instance.data.enableAutoMemoryTrim = v; ApplySettings(); Save(); }
     private void OnEnableRandomMessagesChanged(bool v)
     {
@@ -122,6 +125,7 @@ public class SettingsHandlerToggles : MonoBehaviour
         ambientOcclusionToggle?.SetIsOnWithoutNotify(data.ambientOcclusion);
         enableIKToggle?.SetIsOnWithoutNotify(data.enableIK);
         enableDanceSwitchToggle?.SetIsOnWithoutNotify(data.enableDanceSwitch);
+        enableBpmSyncToggle?.SetIsOnWithoutNotify(data.enableBpmSync);
         enableRandomMessagesToggle?.SetIsOnWithoutNotify(data.enableRandomMessages);
         enableHusbandoModeToggle?.SetIsOnWithoutNotify(data.enableHusbandoMode);
         enableAutoMemoryTrimToggle?.SetIsOnWithoutNotify(data.enableAutoMemoryTrim);
@@ -206,6 +210,7 @@ public class SettingsHandlerToggles : MonoBehaviour
         ambientOcclusionToggle?.SetIsOnWithoutNotify(false);
         enableIKToggle?.SetIsOnWithoutNotify(true);
         enableDanceSwitchToggle?.SetIsOnWithoutNotify(false);
+        enableBpmSyncToggle?.SetIsOnWithoutNotify(true);
         enableRandomMessagesToggle?.SetIsOnWithoutNotify(false);
         enableHusbandoModeToggle?.SetIsOnWithoutNotify(false);
         enableAutoMemoryTrimToggle?.SetIsOnWithoutNotify(false);
@@ -229,6 +234,8 @@ public class SettingsHandlerToggles : MonoBehaviour
         data.ambientOcclusion = false;
         data.enableIK = true;
         data.enableDanceSwitch = false;
+        data.enableBpmSync = true;
+        foreach (var avatar in Resources.FindObjectsOfTypeAll<AvatarAnimatorController>()) avatar.enableBpmSync = true;
         data.enableRandomMessages = false;
         data.enableHusbandoMode = false;
         data.enableAutoMemoryTrim = false;

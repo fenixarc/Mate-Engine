@@ -18,7 +18,7 @@ public static class MEGeminiSettingsBuilder
     const string RootName = "Gemini Settings";
 
     // Layout space: the root canvas transform of the settings menu.
-    static Transform space;
+    internal static Transform space;
 
     [MenuItem("MateEngine/Build Gemini AI Settings UI")]
     public static void Build()
@@ -158,7 +158,7 @@ public static class MEGeminiSettingsBuilder
 
     // ---------- construction helpers ----------
 
-    static RectTransform NewContainer(string name, Transform parent)
+    internal static RectTransform NewContainer(string name, Transform parent)
     {
         var go = new GameObject(name, typeof(RectTransform));
         Undo.RegisterCreatedObjectUndo(go, "Create " + name);
@@ -173,7 +173,7 @@ public static class MEGeminiSettingsBuilder
     }
 
     // Clones template under parent, keeping its size and scale as seen in the canvas space.
-    static GameObject Clone(GameObject template, Transform parent, string name)
+    internal static GameObject Clone(GameObject template, Transform parent, string name)
     {
         var tRt = (RectTransform)template.transform;
         Rect tRect = SpaceRect(tRt);
@@ -195,7 +195,7 @@ public static class MEGeminiSettingsBuilder
         return go;
     }
 
-    static RectTransform MakeLabel(TMP_Text template, Transform parent, string name, string text, float w, float h)
+    internal static RectTransform MakeLabel(TMP_Text template, Transform parent, string name, string text, float w, float h)
     {
         var go = Clone(template.gameObject, parent, name);
         var rt = (RectTransform)go.transform;
@@ -239,14 +239,14 @@ public static class MEGeminiSettingsBuilder
         return button;
     }
 
-    static void SetText(GameObject go, string text)
+    internal static void SetText(GameObject go, string text)
     {
         foreach (var t in go.GetComponentsInChildren<TMP_Text>(true)) t.text = text;
         foreach (var t in go.GetComponentsInChildren<Text>(true)) t.text = text;
     }
 
     // Removes Mate Engine scripts and Localization components (which would overwrite the new label text).
-    static void StripProjectComponents(GameObject go)
+    internal static void StripProjectComponents(GameObject go)
     {
         foreach (var c in go.GetComponentsInChildren<MonoBehaviour>(true))
         {
@@ -257,7 +257,7 @@ public static class MEGeminiSettingsBuilder
         }
     }
 
-    static void ClearPersistentListeners(GameObject go)
+    internal static void ClearPersistentListeners(GameObject go)
     {
         foreach (var c in go.GetComponentsInChildren<Component>(true))
         {
@@ -279,10 +279,10 @@ public static class MEGeminiSettingsBuilder
 
     // ---------- canvas-space layout helpers ----------
 
-    static float Safe(float v) => Mathf.Abs(v) < 1e-6f ? 1e-6f : v;
+    internal static float Safe(float v) => Mathf.Abs(v) < 1e-6f ? 1e-6f : v;
 
     // Maps a point from t's local rect space to its parent's local rect space.
-    static Vector2 StepUp(Transform t, Vector2 p)
+    internal static Vector2 StepUp(Transform t, Vector2 p)
     {
         if (!(t is RectTransform rt))
             return (Vector2)t.localPosition + Vector2.Scale((Vector2)t.localScale, p);
@@ -299,20 +299,20 @@ public static class MEGeminiSettingsBuilder
         return pivotPos + Vector2.Scale((Vector2)rt.localScale, p);
     }
 
-    static Vector2 ToSpace(Transform t, Vector2 p)
+    internal static Vector2 ToSpace(Transform t, Vector2 p)
     {
         for (; t != null && t != space; t = t.parent) p = StepUp(t, p);
         return p;
     }
 
-    static Vector2 ScaleInSpace(Transform t)
+    internal static Vector2 ScaleInSpace(Transform t)
     {
         Vector2 s = Vector2.one;
         for (; t != null && t != space; t = t.parent) s = Vector2.Scale(s, (Vector2)t.localScale);
         return s;
     }
 
-    static Rect SpaceRect(RectTransform rt)
+    internal static Rect SpaceRect(RectTransform rt)
     {
         Rect r = rt.rect;
         Vector2 a = ToSpace(rt, r.min), b = ToSpace(rt, r.max);
@@ -320,20 +320,20 @@ public static class MEGeminiSettingsBuilder
     }
 
     // Requires collapsed anchors (anchorMin == anchorMax), so sizeDelta equals the rect size.
-    static void SetSpaceSize(RectTransform rt, float w, float h)
+    internal static void SetSpaceSize(RectTransform rt, float w, float h)
     {
         Vector2 s = ScaleInSpace(rt);
         rt.sizeDelta = new Vector2(Mathf.Abs(w / Safe(s.x)), Mathf.Abs(h / Safe(s.y)));
     }
 
-    static void MoveInSpace(RectTransform rt, Vector2 delta)
+    internal static void MoveInSpace(RectTransform rt, Vector2 delta)
     {
         Vector2 ps = ScaleInSpace(rt.parent);
         rt.anchoredPosition += new Vector2(delta.x / Safe(ps.x), delta.y / Safe(ps.y));
     }
 
     // Moves t so the top-left of its visible bounds is at (left, top). Returns the new bottom.
-    static float Place(Transform t, float left, float top)
+    internal static float Place(Transform t, float left, float top)
     {
         var rt = (RectTransform)t;
         var b = SpaceBounds(rt);
@@ -342,7 +342,7 @@ public static class MEGeminiSettingsBuilder
     }
 
     // Union of the rects of all descendants that are active relative to root.
-    static Rect SpaceBounds(RectTransform root)
+    internal static Rect SpaceBounds(RectTransform root)
     {
         bool any = false;
         Rect u = default;
@@ -357,7 +357,7 @@ public static class MEGeminiSettingsBuilder
         return any ? u : SpaceRect(root);
     }
 
-    static bool ActiveUnder(Transform t, Transform root)
+    internal static bool ActiveUnder(Transform t, Transform root)
     {
         for (; t != null; t = t.parent)
         {
@@ -402,7 +402,7 @@ public static class MEGeminiSettingsBuilder
         }
     }
 
-    static void GrowScroll(RectTransform aiHeader, float amount)
+    internal static void GrowScroll(RectTransform aiHeader, float amount)
     {
         var scroll = aiHeader.GetComponentInParent<ScrollRect>(true);
         if (scroll == null || scroll.content == null) return;
@@ -424,18 +424,18 @@ public static class MEGeminiSettingsBuilder
 
     // ---------- lookup helpers ----------
 
-    static T Find<T>() where T : Object => FindAll<T>().FirstOrDefault();
+    internal static T Find<T>() where T : Object => FindAll<T>().FirstOrDefault();
 
-    static IEnumerable<T> FindAll<T>() where T : Object =>
+    internal static IEnumerable<T> FindAll<T>() where T : Object =>
         Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None);
 
-    static Transform FindAncestor(Transform t, string name)
+    internal static Transform FindAncestor(Transform t, string name)
     {
         for (; t != null; t = t.parent) if (t.name.Trim() == name) return t;
         return null;
     }
 
-    static string GetPath(Transform t) => t.parent == null ? t.name : GetPath(t.parent) + "/" + t.name;
+    internal static string GetPath(Transform t) => t.parent == null ? t.name : GetPath(t.parent) + "/" + t.name;
 
     static void Fail(string msg)
     {

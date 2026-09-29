@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -16,6 +17,9 @@ public class SettingsHandlerSliders : MonoBehaviour
     public Slider windowSitYOffsetSlider;
     public Slider danceSwitchTimeSlider;
     public Slider danceTransitionTimeSlider;
+    public Slider bpmBeatOffsetSlider;
+    public TMP_Text bpmBeatOffsetLabel;
+    public const float DefaultBpmBeatOffsetMs = 30f;
 
     private void Start()
     {
@@ -100,9 +104,28 @@ public class SettingsHandlerSliders : MonoBehaviour
             SaveAll();
         });
 
+        bpmBeatOffsetSlider?.onValueChanged.AddListener(v =>
+        {
+            SaveLoadHandler.Instance.data.bpmBeatOffsetMs = v;
+            UpdateBpmBeatOffsetLabel(v);
+            SaveAll();
+        });
+
 
         LoadSettings();
         ApplySettings();
+    }
+
+    public void SetBpmBeatOffsetWithoutNotify(float ms)
+    {
+        bpmBeatOffsetSlider?.SetValueWithoutNotify(ms);
+        UpdateBpmBeatOffsetLabel(ms);
+    }
+
+    // The beat offset label shows its value (English-only, like the rest of the BPM sync UI).
+    private void UpdateBpmBeatOffsetLabel(float ms)
+    {
+        if (bpmBeatOffsetLabel != null) bpmBeatOffsetLabel.text = $"BEAT OFFSET: {ms:0} MS";
     }
 
     private void SaveAll()
@@ -127,6 +150,7 @@ public class SettingsHandlerSliders : MonoBehaviour
         windowSitYOffsetSlider?.SetValueWithoutNotify(data.windowSitYOffset);
         danceSwitchTimeSlider?.SetValueWithoutNotify(data.danceSwitchTime);
         danceTransitionTimeSlider?.SetValueWithoutNotify(data.danceTransitionTime);
+        SetBpmBeatOffsetWithoutNotify(data.bpmBeatOffsetMs);
     }
     public void ApplySettings()
     {
@@ -168,7 +192,7 @@ public class SettingsHandlerSliders : MonoBehaviour
         windowSitYOffsetSlider?.SetValueWithoutNotify(0f);
         danceSwitchTimeSlider?.SetValueWithoutNotify(15f);
         danceTransitionTimeSlider?.SetValueWithoutNotify(2f);
-
+        SetBpmBeatOffsetWithoutNotify(DefaultBpmBeatOffsetMs);
 
 
         var data = SaveLoadHandler.Instance.data;
@@ -183,6 +207,7 @@ public class SettingsHandlerSliders : MonoBehaviour
         data.windowSitYOffset = 0f;
         data.danceSwitchTime = 15f;
         data.danceTransitionTime = 2f;
+        data.bpmBeatOffsetMs = DefaultBpmBeatOffsetMs;
         data.uiHueShift = 0f;
         data.uiSaturation = 1f;
 

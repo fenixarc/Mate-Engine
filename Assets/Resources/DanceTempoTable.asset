@@ -1,0 +1,203 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a84084703eabd3e49a9cabbdf0151939, type: 3}
+  m_Name: DanceTempoTable
+  m_EditorClassIdentifier: Assembly-CSharp::DanceTempoTable
+  clips:
+  - clip: {fileID: 7400000, guid: febeb1aee559873409b7bfb426f47c31, type: 2}
+    bpm: 133.3
+    firstBeat: 0.389
+    hasFirstBeat: 1
+  - clip: {fileID: 7400000, guid: 96cf16d8c5d71b54cbebb73ca62a2fbd, type: 2}
+    bpm: 180
+    firstBeat: 0.166
+    hasFirstBeat: 1
+  - clip: {fileID: 7400000, guid: 4b906c4c9b6f7e2468b5626ceca37906, type: 2}
+    bpm: 128.3
+    firstBeat: 0.261
+    hasFirstBeat: 1
+  - clip: {fileID: 7400000, guid: ad5cccf84c91baa4384724df337ff8c6, type: 2}
+    bpm: 105.9
+    firstBeat: 0.269
+    hasFirstBeat: 1
+  - clip: {fileID: 7400000, guid: f8a819e558fb9fc4880b6fc42fa63215, type: 2}
+    bpm: 141.175
+    firstBeat: 0.313
+    hasFirstBeat: 1
+  - clip: {fileID: 7400000, guid: a894a0421ce1b0d49b4f286c4a1fbab6, type: 2}
+    bpm: 99.3
+    firstBeat: 0.311
+    hasFirstBeat: 1
+  - clip: {fileID: 7400000, guid: 30b7ae3022be6954f819885e13895d78, type: 2}
+    bpm: 47.841
+    firstBeat: 1.167
+    hasFirstBeat: 1
+  - clip: {fileID: 7400000, guid: 858bcc7f265f0fa4fb59943540237bb1, type: 2}
+    bpm: 102.128
+    firstBeat: 0.587
+    hasFirstBeat: 1
+  - clip: {fileID: 7400000, guid: db1908b3cbb968843904a7ec7e1d2284, type: 2}
+    bpm: 107.063
+    firstBeat: 0.288
+    hasFirstBeat: 1
+  - clip: {fileID: 7400000, guid: 75a16e73bf32d734f9fd22aba8a7b50f, type: 2}
+    bpm: 85.386
+    firstBeat: 0.495
+    hasFirstBeat: 1
+  - clip: {fileID: 7400000, guid: 44d8585dda9be184eafc05f69cd9b601, type: 2}
+    bpm: 85.558
+    firstBeat: 0.381
+    hasFirstBeat: 1
+  - clip: {fileID: 7400000, guid: 3e91284b5d4ba7b48a80001d717d0a53, type: 2}
+    bpm: 113.684
+    firstBeat: 0.103
+    hasFirstBeat: 1
+  - clip: {fileID: 7400000, guid: b182db6006951ce49b1e8db58d8b4bd0, type: 2}
+    bpm: 103.905
+    firstBeat: 0.535
+    hasFirstBeat: 1
+  - clip: {fileID: 7400000, guid: 8bc06751c321767409918d0388906cfd, type: 2}
+    bpm: 0
+    firstBeat: 0
+    hasFirstBeat: 0
+  - clip: {fileID: 7400000, guid: efe82e52b73d86340b1c8bc6edb3b454, type: 2}
+    bpm: 0
+    firstBeat: 0
+    hasFirstBeat: 0
+  - clip: {fileID: 7400000, guid: a6ec38c4c0d8d254c9e9c9c46d6d09f2, type: 2}
+    bpm: 65.1
+    firstBeat: 0
+    hasFirstBeat: 0
+  - clip: {fileID: 7400000, guid: 55feff9f6f72cc4428bb271eac0f9067, type: 2}
+    bpm: 0
+    firstBeat: 0
+    hasFirstBeat: 0
+  femaleIndexBpm:
+  - 133.3
+  - 108.00001
+  - 128.3
+  - 105.9
+  - 141.175
+  - 99.3
+  - 59.80125
+  - 127.659996
+  - 107.063
+  - 85.386
+  - 85.558
+  - 113.684
+  - 103.905
+  - 133.3
+  maleIndexBpm:
+  - 0
+  - 0
+  - 52.079998
+  - 0
+  - 0
+  - 0
+  - 52.079998
+  - 0
+  - 0
+  - 0
+  - 52.079998
+  - 0
+  - 0
+  - 0
+  femaleIndexBeatsPerLoop:
+  - 31.584696
+  - 4
+  - 8.232532
+  - 4.0006695
+  - 3.9999871
+  - 3.9995856
+  - 4.000036
+  - 4.0000105
+  - 7.999986
+  - 30.999865
+  - 39.00019
+  - 11.999978
+  - 34.000027
+  - 31.584696
+  maleIndexBeatsPerLoop:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  femaleIndexFirstBeat:
+  - 0.02736225
+  - 0.12449999
+  - 0.06779264
+  - 0.11867638
+  - 0.18411632
+  - 0.12868959
+  - 0.23262478
+  - 0.2497874
+  - 0.064237915
+  - 0.022723794
+  - 0.013930529
+  - 0.016263157
+  - 0.027249575
+  - 0.02736225
+  maleIndexFirstBeat:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  femaleIndexDuration:
+  - 14.216667
+  - 2.222222
+  - 3.8499756
+  - 2.2666683
+  - 1.7000122
+  - 2.416668
+  - 4.01333
+  - 1.8799988
+  - 4.4833336
+  - 21.783335
+  - 27.350002
+  - 6.3333335
+  - 19.633335
+  - 14.216667
+  maleIndexDuration:
+  - 19.958334
+  - 32.708336
+  - 15.4375
+  - 7.916667
+  - 19.958334
+  - 32.708336
+  - 15.4375
+  - 7.916667
+  - 19.958334
+  - 32.708336
+  - 15.4375
+  - 7.916667
+  - 32.708336
+  - 19.958334
