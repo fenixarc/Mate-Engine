@@ -7,8 +7,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using K = MESettingsUIKit;
 
-// One-shot tool that adds the "BPM DANCE SYNC" checkbox (+ a sub-note and a beat offset slider) under "Enable Dance Transitions"
-// in the "= DANCING" settings section, pushes everything below it down, and grows the section background.
+// One-shot tool that adds the "BPM DANCE SYNC" checkbox (+ a sub-note and a beat offset slider) under the "Enable Dance Transitions"
+// group (the checkbox and its indented sliders) in the "= DANCING" settings section, pushes everything below it down, and grows the section background.
 // This is the reference example for adding settings UI; see MESettingsUIKit for the layout rules.
 // Everything is registered with Undo; save the scene afterwards.
 public static class MEBpmSyncSettingsBuilder
@@ -59,6 +59,10 @@ public static class MEBpmSyncSettingsBuilder
         var parent = (RectTransform)anchorRt.parent;
         log.AppendLine($"anchor: {K.GetPath(anchorRt)}");
 
+        var sliders = K.Find<SettingsHandlerSliders>();
+        var sliderTemplate = sliders != null ? sliders.soundThresholdSlider : null;
+        if (sliderTemplate == null) return Fail("SettingsHandlerSliders.soundThresholdSlider (the slider row to copy) was not found.", interactive);
+
         if (apply)
         {
             Undo.SetCurrentGroupName("Build BPM Sync Settings UI");
@@ -71,7 +75,7 @@ public static class MEBpmSyncSettingsBuilder
             if (interactive && !EditorUtility.DisplayDialog("Build BPM Sync Settings UI",
                     "The BPM sync checkbox already exists. Remove it and rebuild?", "Rebuild", "Cancel")) return false;
             float previous = existing.sizeDelta.y * K.ScaleInSpace(existing).y;
-            float insertY = K.SpaceBounds(anchorRt).yMin;
+            float insertY = GroupBottom(anchorRt, sliders);
             log.AppendLine($"removing previous build ({previous:0.#} units)");
             if (apply)
             {
@@ -81,27 +85,25 @@ public static class MEBpmSyncSettingsBuilder
             }
         }
 
-        // Measure the anchor row and the spacing to the row below it.
+        // Measure the anchor row and the spacing to the row below its group (the checkbox and its indented sliders).
         Rect anchorBounds = K.SpaceBounds(anchorRt);
+        float groupBottom = GroupBottom(anchorRt, sliders);
         float rowH = anchorBounds.height;
         float gap = rowH * 0.35f;
-        var below = K.NextBelow(parent, anchorRt, anchorBounds.yMin);
-        if (below != null) gap = Mathf.Max(2f, anchorBounds.yMin - K.SpaceBounds(below).yMax);
-        log.AppendLine($"anchor bounds {K.Fmt(anchorBounds)}, gap {gap:0.#}, next row: {(below ? below.name : "none")}");
+        var below = K.NextBelow(parent, anchorRt, groupBottom);
+        if (below != null) gap = Mathf.Max(2f, groupBottom - K.SpaceBounds(below).yMax);
+        log.AppendLine($"anchor bounds {K.Fmt(anchorBounds)}, group bottom {groupBottom:0.#}, gap {gap:0.#}, next row: {(below ? below.name : "none")}");
 
         var label = anchor.GetComponentsInChildren<TMP_Text>(true).FirstOrDefault();
         if (label == null) return Fail("The Enable Dance Transitions toggle has no TMP label to copy.", interactive);
 
-        var sliders = K.Find<SettingsHandlerSliders>();
-        var sliderTemplate = sliders != null ? sliders.soundThresholdSlider : null;
-        if (sliderTemplate == null) return Fail("SettingsHandlerSliders.soundThresholdSlider (the slider row to copy) was not found.", interactive);
         Rect sliderTemplateBounds = K.SpaceBounds((RectTransform)sliderTemplate.transform);
 
         if (!apply)
         {
             float estimate = rowH + gap + rowH * 0.6f + gap * 0.6f + sliderTemplateBounds.height;
             log.AppendLine($"would add about {estimate:0.#} units");
-            K.PushDown(mainMenu, anchorRt, null, anchorBounds.yMin, estimate, false, log);
+            K.PushDown(mainMenu, anchorRt, (RectTransform)null, groupBottom, estimate, false, log);
             Debug.Log(log.ToString());
             return true;
         }
@@ -112,7 +114,7 @@ public static class MEBpmSyncSettingsBuilder
         var toggle = toggleGo.GetComponent<Toggle>();
         toggle.isOn = true;
         K.SetText(toggleGo, ToggleText);
-        float cursor = K.Place(toggleGo.transform, anchorBounds.xMin, anchorBounds.yMin - gap);
+        float cursor = K.Place(toggleGo.transform, anchorBounds.xMin, groupBottom - gap);
 
         var toggleLabel = toggleGo.GetComponentsInChildren<TMP_Text>(true).FirstOrDefault();
         Rect labelRect = toggleLabel != null ? K.SpaceRect((RectTransform)toggleLabel.transform) : K.SpaceBounds((RectTransform)toggleGo.transform);
@@ -139,9 +141,9 @@ public static class MEBpmSyncSettingsBuilder
         if (indent > 0f && indent < sliderRect.width * 0.5f) K.SetSpaceSize(sliderRt, sliderRect.width - indent, sliderRect.height);
         cursor = K.Place(sliderGo.transform, labelRect.xMin, cursor - gap * 0.6f);
 
-        float added = anchorBounds.yMin - cursor;
+        float added = groupBottom - cursor;
         log.AppendLine($"added {added:0.#} units");
-        K.PushDown(mainMenu, anchorRt, root, anchorBounds.yMin, added, true, log);
+        K.PushDown(mainMenu, anchorRt, root, groupBottom, added, true, log);
         K.GrowScroll(section, added);
         root.sizeDelta = new Vector2(0f, added / K.Safe(K.ScaleInSpace(root).y));
 
@@ -178,6 +180,21 @@ public static class MEBpmSyncSettingsBuilder
         if (K.CopyTooltip(toggles.enableDanceSwitchToggle, toggles.enableBpmSyncToggle, TooltipText, log))
             EditorSceneManager.SaveScene(scene);
         Debug.Log(log.ToString());
+    }
+
+    // Bottom of the Enable Dance Transitions group: the checkbox plus its indented sliders
+    // (see MEDanceSettingsLayoutBuilder). BPM sync goes below the whole group.
+    static float GroupBottom(RectTransform anchor, SettingsHandlerSliders sliders)
+    {
+        var anchorBounds = K.SpaceBounds(anchor);
+        float bottom = anchorBounds.yMin;
+        // In the original layout (threshold slider below the checkbox) the sliders are further down the section, not in the group.
+        var threshold = sliders.soundThresholdSlider;
+        if (threshold == null || K.SpaceBounds((RectTransform)threshold.transform).center.y < anchorBounds.center.y) return bottom;
+        foreach (var s in new[] { sliders.danceSwitchTimeSlider, sliders.danceTransitionTimeSlider })
+            if (s != null && s.transform.parent == anchor.parent)
+                bottom = Mathf.Min(bottom, K.SpaceBounds((RectTransform)s.transform).yMin);
+        return bottom;
     }
 
     static bool Fail(string msg, bool interactive)

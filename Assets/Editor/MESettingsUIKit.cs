@@ -287,7 +287,11 @@ public static class MESettingsUIKit
     // Moves everything below insertY down by amount (negative = up): siblings at every level from the anchor's
     // parent up to the main menu, then fixes the section backgrounds and their locked constraints.
     // skip is the newly built container (it must not move). With apply = false it only logs.
-    public static void PushDown(Transform mainMenu, RectTransform anchor, RectTransform skip, float insertY, float amount, bool apply, StringBuilder log)
+    public static void PushDown(Transform mainMenu, RectTransform anchor, RectTransform skip, float insertY, float amount, bool apply, StringBuilder log) =>
+        PushDown(mainMenu, anchor, skip != null ? new HashSet<Transform> { skip } : null, insertY, amount, apply, log);
+
+    // Same, but skips several rows (e.g. rows that a restack has already placed).
+    public static void PushDown(Transform mainMenu, RectTransform anchor, ICollection<Transform> skip, float insertY, float amount, bool apply, StringBuilder log)
     {
         var bg = mainMenu.Find(CategoryBackground);
         // Measured before anything moves: moving the rows first would skew the constraint offsets it is read from.
@@ -300,7 +304,7 @@ public static class MESettingsUIKit
             if (levelParent == null) break;
             foreach (Transform sib in levelParent)
             {
-                if (sib == level || sib == skip || sib.name == CategoryBackground || !(sib is RectTransform rt)) continue;
+                if (sib == level || (skip != null && skip.Contains(sib)) || sib.name == CategoryBackground || !(sib is RectTransform rt)) continue;
                 var r = SpaceBounds(rt);
                 if (r.height <= 0f || r.center.y >= insertY) continue;
                 moved.Add(sib);
