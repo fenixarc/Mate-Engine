@@ -54,6 +54,7 @@ Code comments are sometimes in German. Keep the surrounding style, which is plai
 - Section backgrounds follow their headers through **locked `PositionConstraint`s**. Use `PushDown`, which fixes their offsets, instead of only moving rects.
 - Rows are nested, so push siblings at every level down to the main menu, then call `GrowScroll`.
 Run the builder's dry run in batch mode (`-executeMethod <Builder>.ReportBatch`) before building. Check the result in Play Mode.
+To grey out rows that depend on a checkbox, add a `SettingRequires` (wired by `MESettingsDependencyBuilder`), and call `SettingRequires.RefreshAll()` after any `SetIsOnWithoutNotify` in load/reset code.
 
 **Multi-instance.** Up to 9 avatars run as separate processes. `VRMLoader/LaunchMateEngineInstance.cs` launches copies of the app with `--instance N --savefile <file> --datadir <dir>`, and `SaveLoadHandler` reads `--savefile` and `--datadir` to isolate each instance's settings. Dance sync between instances goes through `AvatarDanceSync` / `AvatarSyncDanceTools` and `Sync/dance_sync.json`.
 

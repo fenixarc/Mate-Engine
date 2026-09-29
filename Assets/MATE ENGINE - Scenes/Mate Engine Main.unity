@@ -3408,6 +3408,8 @@ GameObject:
   - component: {fileID: 118256378}
   - component: {fileID: 118256377}
   - component: {fileID: 118256376}
+  - component: {fileID: 118256380}
+  - component: {fileID: 118256379}
   m_Layer: 5
   m_Name: Gemini API Key
   m_TagString: Untagged
@@ -3542,6 +3544,33 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 118256374}
   m_CullTransparentMesh: 1
+--- !u!114 &118256379
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 118256374}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a72bbbe46649744cadb8d8f5b0595be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SettingRequires
+  requires:
+  - {fileID: 1521351111}
+  disabledAlpha: 0.35
+--- !u!225 &118256380
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 118256374}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!224 &127254509 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 22479036, guid: 483c946d35a69704b9c4e151528ab04c, type: 3}
@@ -3736,6 +3765,8 @@ GameObject:
   - component: {fileID: 131298247}
   - component: {fileID: 131298246}
   - component: {fileID: 131298245}
+  - component: {fileID: 131298249}
+  - component: {fileID: 131298248}
   m_Layer: 5
   m_Name: Gemini Model
   m_TagString: Untagged
@@ -3862,6 +3893,33 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 131298243}
   m_CullTransparentMesh: 1
+--- !u!114 &131298248
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 131298243}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a72bbbe46649744cadb8d8f5b0595be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SettingRequires
+  requires:
+  - {fileID: 1521351111}
+  disabledAlpha: 0.35
+--- !u!225 &131298249
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 131298243}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &131839737
 GameObject:
   m_ObjectHideFlags: 0
@@ -33392,6 +33450,8 @@ GameObject:
   - component: {fileID: 687139785}
   - component: {fileID: 687139784}
   - component: {fileID: 687139783}
+  - component: {fileID: 687139787}
+  - component: {fileID: 687139786}
   m_Layer: 5
   m_Name: Gemini API URL
   m_TagString: Untagged
@@ -33526,6 +33586,33 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 687139781}
   m_CullTransparentMesh: 1
+--- !u!114 &687139786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 687139781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a72bbbe46649744cadb8d8f5b0595be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SettingRequires
+  requires:
+  - {fileID: 1521351111}
+  disabledAlpha: 0.35
+--- !u!225 &687139787
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 687139781}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &699646034
 GameObject:
   m_ObjectHideFlags: 0
@@ -34759,7 +34846,7 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 1, g: 0.26999998, b: 0.96203995, a: 1}
-  m_Intensity: 1.712911e-29
+  m_Intensity: 1.628685e-29
   m_Range: 0.5
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -35815,6 +35902,8 @@ GameObject:
   - component: {fileID: 793652601}
   - component: {fileID: 793652600}
   - component: {fileID: 793652599}
+  - component: {fileID: 793652603}
+  - component: {fileID: 793652602}
   m_Layer: 5
   m_Name: Test Connection Button
   m_TagString: Untagged
@@ -35924,6 +36013,33 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 793652597}
   m_CullTransparentMesh: 1
+--- !u!114 &793652602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 793652597}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a72bbbe46649744cadb8d8f5b0595be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SettingRequires
+  requires:
+  - {fileID: 1521351111}
+  disabledAlpha: 0.35
+--- !u!225 &793652603
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 793652597}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &794148440
 GameObject:
   m_ObjectHideFlags: 0
@@ -77518,7 +77634,7 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 0, g: 0.44799995, b: 1, a: 1}
-  m_Intensity: 3.425822e-29
+  m_Intensity: 3.25737e-29
   m_Range: 1
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -96977,6 +97093,8 @@ GameObject:
   - component: {fileID: 1341383895}
   - component: {fileID: 1341383897}
   - component: {fileID: 1341383896}
+  - component: {fileID: 1341383899}
+  - component: {fileID: 1341383898}
   m_Layer: 5
   m_Name: API URL Label
   m_TagString: Untagged
@@ -97102,6 +97220,33 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1341383894}
   m_CullTransparentMesh: 1
+--- !u!114 &1341383898
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1341383894}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a72bbbe46649744cadb8d8f5b0595be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SettingRequires
+  requires:
+  - {fileID: 1521351111}
+  disabledAlpha: 0.35
+--- !u!225 &1341383899
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1341383894}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1343811277
 GameObject:
   m_ObjectHideFlags: 0
@@ -102443,7 +102588,7 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 0, g: 0.44799995, b: 1, a: 1}
-  m_Intensity: 2.5693663e-29
+  m_Intensity: 2.4430274e-29
   m_Range: 1
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -106887,6 +107032,8 @@ GameObject:
   - component: {fileID: 1501025000}
   - component: {fileID: 1501025002}
   - component: {fileID: 1501025001}
+  - component: {fileID: 1501025004}
+  - component: {fileID: 1501025003}
   m_Layer: 5
   m_Name: API Key Label
   m_TagString: Untagged
@@ -107012,6 +107159,33 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1501024999}
   m_CullTransparentMesh: 1
+--- !u!114 &1501025003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1501024999}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a72bbbe46649744cadb8d8f5b0595be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SettingRequires
+  requires:
+  - {fileID: 1521351111}
+  disabledAlpha: 0.35
+--- !u!225 &1501025004
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1501024999}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1509582141
 GameObject:
   m_ObjectHideFlags: 0
@@ -260865,7 +261039,7 @@ MonoBehaviour:
     groupID: ambi_lights
     exclusiveTags:
     - lights
-    fadeCurrentValue: 8.564555e-30
+    fadeCurrentValue: 8.143425e-30
     fadeTarget: 0
     isFading: 1
     hasYSet: 0
@@ -260889,7 +261063,7 @@ MonoBehaviour:
     groupID: ambi_lights
     exclusiveTags:
     - lights
-    fadeCurrentValue: 8.564555e-30
+    fadeCurrentValue: 8.143425e-30
     fadeTarget: 0
     isFading: 1
     hasYSet: 0
@@ -260913,7 +261087,7 @@ MonoBehaviour:
     groupID: ambi_lights
     exclusiveTags:
     - lights
-    fadeCurrentValue: 8.564555e-30
+    fadeCurrentValue: 8.143425e-30
     fadeTarget: 0
     isFading: 1
     hasYSet: 0
