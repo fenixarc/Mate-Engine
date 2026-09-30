@@ -133,6 +133,7 @@ public class SettingsHandlerToggles : MonoBehaviour
         enableFeedSystemToggle?.SetIsOnWithoutNotify(SaveLoadHandler.Instance.data.enableFeedSystem);
         enableRandomAvatarToggle?.SetIsOnWithoutNotify(SaveLoadHandler.Instance.data.enableRandomAvatar);
         enableLocomotionToggle?.SetIsOnWithoutNotify(data.enableLocomotion);
+        SettingRequires.RefreshAll();
         ApplySettings();
     }
 
@@ -218,6 +219,7 @@ public class SettingsHandlerToggles : MonoBehaviour
         enableFeedSystemToggle?.SetIsOnWithoutNotify(false);
         enableRandomAvatarToggle?.SetIsOnWithoutNotify(false);
         enableLocomotionToggle?.SetIsOnWithoutNotify(false);
+        SettingRequires.RefreshAll();
         SaveLoadHandler.Instance.data.enableLocomotion = false;
 
 

@@ -44,6 +44,7 @@ public class SettingsHandlerAIProvider : MonoBehaviour
         var data = SaveLoadHandler.Instance.data;
 
         useGeminiToggle?.SetIsOnWithoutNotify(data.useGeminiAI);
+        SettingRequires.RefreshAll();
         if (apiUrlInput != null) apiUrlInput.SetTextWithoutNotify(GeminiClient.NormalizeUrl(data.geminiApiUrl));
         if (apiKeyInput != null) apiKeyInput.SetTextWithoutNotify(SecureStore.Unprotect(data.geminiApiKeyEncrypted));
 
@@ -89,6 +90,7 @@ public class SettingsHandlerAIProvider : MonoBehaviour
     public void ResetToDefaults()
     {
         useGeminiToggle?.SetIsOnWithoutNotify(false);
+        SettingRequires.RefreshAll();
         UpdatePanelVisibility();
         SaveLoadHandler.Instance.data.useGeminiAI = false;
         AIProviderRouter.Instance?.ApplyProviderChange(false);

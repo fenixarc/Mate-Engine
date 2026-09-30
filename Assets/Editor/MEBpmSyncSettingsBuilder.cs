@@ -1,19 +1,16 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.Animations;
 using UnityEngine.UI;
-using G = MEGeminiSettingsBuilder;
+using K = MESettingsUIKit;
 
-// One-shot tool that adds the "BPM DANCE SYNC" checkbox (+ a sub-note and a beat offset slider) under "Enable Dance Transitions"
-// in the "= DANCING" settings section, pushes everything below it down, and grows the section background.
-// Section backgrounds (Category Background/Image (N)) follow their headers through locked PositionConstraints,
-// so their offsets are unlocked, corrected, and re-locked here. Layout is done in the settings canvas's local
-// space (see MEGeminiSettingsBuilder). Everything is registered with Undo; save the scene afterwards.
+// One-shot tool that adds the "BPM DANCE SYNC" checkbox (+ a sub-note and a beat offset slider) under the "Enable Dance Transitions"
+// group (the checkbox and its indented sliders) in the "= DANCING" settings section, pushes everything below it down, and grows the section background.
+// This is the reference example for adding settings UI; see MESettingsUIKit for the layout rules.
+// Everything is registered with Undo; save the scene afterwards.
 public static class MEBpmSyncSettingsBuilder
 {
     const string RootName = "BPM Sync Settings";
@@ -49,19 +46,22 @@ public static class MEBpmSyncSettingsBuilder
     static bool Run(bool apply, bool interactive)
     {
         var log = new StringBuilder($"[BPM Sync UI] {(apply ? "BUILD" : "DRY RUN")}\n");
-        var toggles = G.Find<SettingsHandlerToggles>();
+        var toggles = K.Find<SettingsHandlerToggles>();
         var anchor = toggles != null ? toggles.enableDanceSwitchToggle : null;
         if (anchor == null) return Fail("SettingsHandlerToggles.enableDanceSwitchToggle not found. Open 'Mate Engine Main' first.", interactive);
 
-        var section = G.FindAncestor(anchor.transform, SectionName) as RectTransform;
+        var section = K.FindAncestor(anchor.transform, SectionName) as RectTransform;
         if (section == null) return Fail($"'{SectionName}' was not found above the Enable Dance Transitions toggle.", interactive);
         var mainMenu = section.parent;
-        var canvases = section.GetComponentsInParent<Canvas>(true);
-        G.space = canvases.Length > 0 ? canvases[canvases.Length - 1].transform : mainMenu;
+        K.UseCanvasSpaceOf(section, mainMenu);
 
         var anchorRt = (RectTransform)anchor.transform;
         var parent = (RectTransform)anchorRt.parent;
-        log.AppendLine($"anchor: {G.GetPath(anchorRt)}");
+        log.AppendLine($"anchor: {K.GetPath(anchorRt)}");
+
+        var sliders = K.Find<SettingsHandlerSliders>();
+        var sliderTemplate = sliders != null ? sliders.soundThresholdSlider : null;
+        if (sliderTemplate == null) return Fail("SettingsHandlerSliders.soundThresholdSlider (the slider row to copy) was not found.", interactive);
 
         if (apply)
         {
@@ -74,62 +74,60 @@ public static class MEBpmSyncSettingsBuilder
         {
             if (interactive && !EditorUtility.DisplayDialog("Build BPM Sync Settings UI",
                     "The BPM sync checkbox already exists. Remove it and rebuild?", "Rebuild", "Cancel")) return false;
-            float previous = existing.sizeDelta.y * G.ScaleInSpace(existing).y;
-            float insertY = G.SpaceBounds(anchorRt).yMin;
+            float previous = existing.sizeDelta.y * K.ScaleInSpace(existing).y;
+            float insertY = GroupBottom(anchorRt, sliders);
             log.AppendLine($"removing previous build ({previous:0.#} units)");
             if (apply)
             {
-                PushDown(mainMenu, anchorRt, existing, insertY, -previous, true, log);
-                G.GrowScroll(section, -previous);
+                K.PushDown(mainMenu, anchorRt, existing, insertY, -previous, true, log);
+                K.GrowScroll(section, -previous);
                 Undo.DestroyObjectImmediate(existing.gameObject);
             }
         }
 
-        // Measure the anchor row and the spacing to the row below it.
-        Rect anchorBounds = G.SpaceBounds(anchorRt);
+        // Measure the anchor row and the spacing to the row below its group (the checkbox and its indented sliders).
+        Rect anchorBounds = K.SpaceBounds(anchorRt);
+        float groupBottom = GroupBottom(anchorRt, sliders);
         float rowH = anchorBounds.height;
         float gap = rowH * 0.35f;
-        var below = NextBelow(parent, anchorRt, anchorBounds.yMin);
-        if (below != null) gap = Mathf.Max(2f, anchorBounds.yMin - G.SpaceBounds(below).yMax);
-        log.AppendLine($"anchor bounds {Fmt(anchorBounds)}, gap {gap:0.#}, next row: {(below ? below.name : "none")}");
+        var below = K.NextBelow(parent, anchorRt, groupBottom);
+        if (below != null) gap = Mathf.Max(2f, groupBottom - K.SpaceBounds(below).yMax);
+        log.AppendLine($"anchor bounds {K.Fmt(anchorBounds)}, group bottom {groupBottom:0.#}, gap {gap:0.#}, next row: {(below ? below.name : "none")}");
 
         var label = anchor.GetComponentsInChildren<TMP_Text>(true).FirstOrDefault();
         if (label == null) return Fail("The Enable Dance Transitions toggle has no TMP label to copy.", interactive);
 
-        var sliders = G.Find<SettingsHandlerSliders>();
-        var sliderTemplate = sliders != null ? sliders.soundThresholdSlider : null;
-        if (sliderTemplate == null) return Fail("SettingsHandlerSliders.soundThresholdSlider (the slider row to copy) was not found.", interactive);
-        Rect sliderTemplateBounds = G.SpaceBounds((RectTransform)sliderTemplate.transform);
+        Rect sliderTemplateBounds = K.SpaceBounds((RectTransform)sliderTemplate.transform);
 
         if (!apply)
         {
             float estimate = rowH + gap + rowH * 0.6f + gap * 0.6f + sliderTemplateBounds.height;
             log.AppendLine($"would add about {estimate:0.#} units");
-            PushDown(mainMenu, anchorRt, null, anchorBounds.yMin, estimate, false, log);
+            K.PushDown(mainMenu, anchorRt, (RectTransform)null, groupBottom, estimate, false, log);
             Debug.Log(log.ToString());
             return true;
         }
 
         // Build: container, toggle, sub-note.
-        var root = G.NewContainer(RootName, parent);
-        var toggleGo = G.Clone(anchor.gameObject, root, "BPM Sync Toggle");
+        var root = K.NewContainer(RootName, parent);
+        var toggleGo = K.Clone(anchor.gameObject, root, "BPM Sync Toggle");
         var toggle = toggleGo.GetComponent<Toggle>();
         toggle.isOn = true;
-        G.SetText(toggleGo, ToggleText);
-        float cursor = G.Place(toggleGo.transform, anchorBounds.xMin, anchorBounds.yMin - gap);
+        K.SetText(toggleGo, ToggleText);
+        float cursor = K.Place(toggleGo.transform, anchorBounds.xMin, groupBottom - gap);
 
         var toggleLabel = toggleGo.GetComponentsInChildren<TMP_Text>(true).FirstOrDefault();
-        Rect labelRect = toggleLabel != null ? G.SpaceRect((RectTransform)toggleLabel.transform) : G.SpaceBounds((RectTransform)toggleGo.transform);
+        Rect labelRect = toggleLabel != null ? K.SpaceRect((RectTransform)toggleLabel.transform) : K.SpaceBounds((RectTransform)toggleGo.transform);
         float noteH = labelRect.height * 0.7f;
-        var note = G.MakeLabel(label, root, "BPM Sync Note", NoteText, Mathf.Max(labelRect.width, anchorBounds.width), noteH);
+        var note = K.MakeLabel(label, root, "BPM Sync Note", NoteText, Mathf.Max(labelRect.width, anchorBounds.width), noteH);
         var noteText = note.GetComponent<TMP_Text>();
         noteText.fontSize = label.fontSize * 0.7f;
         noteText.enableAutoSizing = false;
         noteText.color = NoteColor;
-        cursor = G.Place(note, labelRect.xMin, cursor - gap * 0.2f);
+        cursor = K.Place(note, labelRect.xMin, cursor - gap * 0.2f);
 
         // Beat offset slider, indented under the checkbox like the note (it is a BPM-sync sub-setting).
-        var sliderGo = G.Clone(sliderTemplate.gameObject, root, "BPM Beat Offset Slider");
+        var sliderGo = K.Clone(sliderTemplate.gameObject, root, "BPM Beat Offset Slider");
         var slider = sliderGo.GetComponent<Slider>();
         slider.wholeNumbers = true;
         slider.minValue = SliderMin;
@@ -138,26 +136,26 @@ public static class MEBpmSyncSettingsBuilder
         var sliderLabel = sliderGo.GetComponentsInChildren<TMP_Text>(true).FirstOrDefault();
         if (sliderLabel != null) sliderLabel.text = $"BEAT OFFSET: {SettingsHandlerSliders.DefaultBpmBeatOffsetMs:0} MS";
         var sliderRt = (RectTransform)sliderGo.transform;
-        Rect sliderRect = G.SpaceRect(sliderRt);
+        Rect sliderRect = K.SpaceRect(sliderRt);
         float indent = labelRect.xMin - sliderTemplateBounds.xMin;
-        if (indent > 0f && indent < sliderRect.width * 0.5f) G.SetSpaceSize(sliderRt, sliderRect.width - indent, sliderRect.height);
-        cursor = G.Place(sliderGo.transform, labelRect.xMin, cursor - gap * 0.6f);
+        if (indent > 0f && indent < sliderRect.width * 0.5f) K.SetSpaceSize(sliderRt, sliderRect.width - indent, sliderRect.height);
+        cursor = K.Place(sliderGo.transform, labelRect.xMin, cursor - gap * 0.6f);
 
-        float added = anchorBounds.yMin - cursor;
+        float added = groupBottom - cursor;
         log.AppendLine($"added {added:0.#} units");
-        PushDown(mainMenu, anchorRt, root, anchorBounds.yMin, added, true, log);
-        G.GrowScroll(section, added);
-        root.sizeDelta = new Vector2(0f, added / G.Safe(G.ScaleInSpace(root).y));
+        K.PushDown(mainMenu, anchorRt, root, groupBottom, added, true, log);
+        K.GrowScroll(section, added);
+        root.sizeDelta = new Vector2(0f, added / K.Safe(K.ScaleInSpace(root).y));
 
         Undo.RecordObject(toggles, "Wire BPM sync toggle");
         toggles.enableBpmSyncToggle = toggle;
-        CopyTooltip(anchor, toggle, TooltipText, log);
+        K.CopyTooltip(anchor, toggle, TooltipText, log);
         EditorUtility.SetDirty(toggles);
 
         Undo.RecordObject(sliders, "Wire BPM beat offset slider");
         sliders.bpmBeatOffsetSlider = slider;
         sliders.bpmBeatOffsetLabel = sliderLabel;
-        CopyTooltip(sliderTemplate, slider, SliderTooltipText, log);
+        K.CopyTooltip(sliderTemplate, slider, SliderTooltipText, log);
         EditorUtility.SetDirty(sliders);
 
         Undo.CollapseUndoOperations(undoGroup);
@@ -172,146 +170,32 @@ public static class MEBpmSyncSettingsBuilder
     public static void AddTooltipBatch()
     {
         var scene = EditorSceneManager.OpenScene(ScenePath);
-        var toggles = G.Find<SettingsHandlerToggles>();
+        var toggles = K.Find<SettingsHandlerToggles>();
         if (toggles == null || toggles.enableDanceSwitchToggle == null || toggles.enableBpmSyncToggle == null)
         {
             Debug.LogError("[BPM Sync UI] Enable Dance Transitions or BPM Dance Sync toggle is not wired on SettingsHandlerToggles.");
             return;
         }
         var log = new StringBuilder("[BPM Sync UI] TOOLTIP\n");
-        if (CopyTooltip(toggles.enableDanceSwitchToggle, toggles.enableBpmSyncToggle, TooltipText, log))
+        if (K.CopyTooltip(toggles.enableDanceSwitchToggle, toggles.enableBpmSyncToggle, TooltipText, log))
             EditorSceneManager.SaveScene(scene);
         Debug.Log(log.ToString());
     }
 
-    // Copies the source control's UiTooltip (look, delay, hover zone, offsets) onto target and sets the text.
-    // Uses tooltipText with no locKey, like the rest of the BPM UI, which is English-only.
-    static bool CopyTooltip(Component source, Component target, string text, StringBuilder log)
+    // Bottom of the Enable Dance Transitions group: the checkbox plus its indented sliders
+    // (see MEDanceSettingsLayoutBuilder). BPM sync goes below the whole group.
+    static float GroupBottom(RectTransform anchor, SettingsHandlerSliders sliders)
     {
-        var src = source.GetComponent<UiTooltip>();
-        if (src == null) { log.AppendLine("  source toggle has no UiTooltip"); return false; }
-
-        var tip = target.GetComponent<UiTooltip>();
-        if (tip == null) tip = Undo.AddComponent<UiTooltip>(target.gameObject);
-        Undo.RecordObject(tip, "BPM sync tooltip");
-        EditorUtility.CopySerialized(src, tip);
-        tip.locKey = "";
-        tip.tooltipText = text;
-        EditorUtility.SetDirty(tip);
-        EditorSceneManager.MarkSceneDirty(target.gameObject.scene);
-        log.AppendLine($"  tooltip copied from {src.name} onto {G.GetPath(target.transform)}");
-        return true;
+        var anchorBounds = K.SpaceBounds(anchor);
+        float bottom = anchorBounds.yMin;
+        // In the original layout (threshold slider below the checkbox) the sliders are further down the section, not in the group.
+        var threshold = sliders.soundThresholdSlider;
+        if (threshold == null || K.SpaceBounds((RectTransform)threshold.transform).center.y < anchorBounds.center.y) return bottom;
+        foreach (var s in new[] { sliders.danceSwitchTimeSlider, sliders.danceTransitionTimeSlider })
+            if (s != null && s.transform.parent == anchor.parent)
+                bottom = Mathf.Min(bottom, K.SpaceBounds((RectTransform)s.transform).yMin);
+        return bottom;
     }
-
-    // Moves everything below insertY down by amount (negative = up): siblings at every level from the anchor's
-    // parent up to the main menu, then fixes the section backgrounds and their locked constraints.
-    static void PushDown(Transform mainMenu, RectTransform anchor, RectTransform skip, float insertY, float amount, bool apply, StringBuilder log)
-    {
-        var bg = mainMenu.Find("Category Background");
-        // Measured before anything moves: moving the rows first would skew the constraint offsets it is read from.
-        float k = bg != null ? ConstraintRatio(bg, log) : 0f;
-
-        var moved = new HashSet<Transform>();
-        for (Transform level = anchor; level != null && level != mainMenu; level = level.parent)
-        {
-            var levelParent = level.parent;
-            if (levelParent == null) break;
-            foreach (Transform sib in levelParent)
-            {
-                if (sib == level || sib == skip || sib.name == "Category Background" || !(sib is RectTransform rt)) continue;
-                var r = G.SpaceBounds(rt);
-                if (r.height <= 0f || r.center.y >= insertY) continue;
-                moved.Add(sib);
-                log.AppendLine($"  move {G.GetPath(sib)} by {amount:0.#}");
-                if (apply)
-                {
-                    Undo.RecordObject(rt, "Move settings row");
-                    G.MoveInSpace(rt, Vector2.down * amount);
-                }
-            }
-            if (levelParent == mainMenu) break;
-        }
-
-        if (bg == null) { log.AppendLine("  no Category Background"); return; }
-
-        foreach (Transform t in bg)
-        {
-            if (!(t is RectTransform img)) continue;
-            var r = G.SpaceRect(img);
-            if (r.height <= 0f) continue;
-
-            bool grows = r.yMax >= insertY && r.yMin <= insertY;
-            float imgMove = grows ? amount * 0.5f : (r.center.y < insertY ? amount : 0f);
-            var pc = img.GetComponent<PositionConstraint>();
-            var src = pc != null && pc.sourceCount > 0 ? pc.GetSource(0).sourceTransform : null;
-            float srcMove = src != null && IsUnderAny(src, moved) ? amount : 0f;
-            if (!grows && Mathf.Approximately(imgMove, 0f)) continue;
-
-            float offsetDelta = -(imgMove - srcMove) * k;
-            log.AppendLine($"  bg {img.name}: {(grows ? "grow" : "shift")} imgMove={imgMove:0.#} srcMove={srcMove:0.#} " +
-                           $"src={(src ? src.name : "none")} offsetY {(pc ? pc.translationOffset.y : 0f):0.###} -> {(pc ? pc.translationOffset.y + offsetDelta : 0f):0.###}");
-            if (!apply) continue;
-
-            Undo.RecordObject(img, "Adjust section background");
-            if (grows) img.sizeDelta += new Vector2(0f, amount / G.Safe(G.ScaleInSpace(img).y));
-            // Keep the at-rest layout in step with the constrained position.
-            G.MoveInSpace(img, Vector2.down * imgMove);
-
-            if (pc != null && !Mathf.Approximately(offsetDelta, 0f))
-            {
-                Undo.RecordObject(pc, "Adjust background constraint");
-                pc.locked = false;
-                var off = pc.translationOffset;
-                off.y += offsetDelta;
-                pc.translationOffset = off;
-                pc.locked = true;
-                EditorUtility.SetDirty(pc);
-            }
-        }
-    }
-
-    // World units per canvas unit, from the existing locked constraints (median).
-    static float ConstraintRatio(Transform bg, StringBuilder log)
-    {
-        var ratios = new List<float>();
-        foreach (Transform t in bg)
-        {
-            var pc = t.GetComponent<PositionConstraint>();
-            if (pc == null || pc.sourceCount == 0 || !(t is RectTransform rt)) continue;
-            var src = pc.GetSource(0).sourceTransform as RectTransform;
-            if (src == null) continue;
-            float d = PivotY(rt) - PivotY(src);
-            if (Mathf.Abs(d) > 1f) ratios.Add(pc.translationOffset.y / d);
-        }
-        ratios.Sort();
-        float k = ratios.Count > 0 ? ratios[ratios.Count / 2] : 0f;
-        log.AppendLine($"  constraint world/canvas ratio k = {k:0.####} (from {ratios.Count} constraints)");
-        return k;
-    }
-
-    static float PivotY(RectTransform rt) => G.ToSpace(rt, new Vector2(0f, 0f)).y;
-
-    static bool IsUnderAny(Transform t, HashSet<Transform> set)
-    {
-        for (; t != null; t = t.parent) if (set.Contains(t)) return true;
-        return false;
-    }
-
-    static RectTransform NextBelow(Transform parent, RectTransform anchor, float y)
-    {
-        RectTransform best = null;
-        float bestTop = float.MinValue;
-        foreach (Transform t in parent)
-        {
-            if (t == anchor || !(t is RectTransform rt) || !t.gameObject.activeSelf) continue;
-            var r = G.SpaceBounds(rt);
-            if (r.height <= 0f || r.yMax > y + 0.01f) continue;
-            if (r.yMax > bestTop) { bestTop = r.yMax; best = rt; }
-        }
-        return best;
-    }
-
-    static string Fmt(Rect r) => $"x[{r.xMin:0.#},{r.xMax:0.#}] y[{r.yMin:0.#},{r.yMax:0.#}]";
 
     static bool Fail(string msg, bool interactive)
     {

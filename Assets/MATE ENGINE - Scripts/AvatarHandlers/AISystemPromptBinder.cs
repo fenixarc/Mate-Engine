@@ -3,6 +3,11 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Binds the AI system prompt box in the settings to ZomeAI_prompt.txt and the LLMCharacter's system prompt.
+// The file always holds real prompt text: when it is missing or empty, or the box is cleared, the default prompt
+// (the LLMCharacter's serialized prompt, the same text as the box's placeholder) is written back.
+// Saves when editing ends (clicking away, or the menu closing while typing), so it does not rewrite the file
+// or touch the chat on every keystroke.
 [DefaultExecutionOrder(-1000)]
 public class AISystemPromptBinder : MonoBehaviour
 {
@@ -10,8 +15,8 @@ public class AISystemPromptBinder : MonoBehaviour
     public InputField input;
     public LLMUnity.LLMCharacter target;
 
-    [Header("Behavior")]
-    public bool liveSave = true;
+    private string defaultPrompt = "";
+    private string savedPrompt = "";
 
     void Reset()
     {
@@ -22,65 +27,79 @@ public class AISystemPromptBinder : MonoBehaviour
     void Awake()
     {
         if (!input) input = GetComponent<InputField>();
+        // A binder without an LLM target has no default prompt to fall back on, so it must not touch the file.
+        if (!target || !input)
+        {
+            enabled = false;
+            return;
+        }
 
-        string path = GetFixedPromptPath();
-        string txt = target ? target.prompt : "";
+        // Runs before LLMCharacter.Start replaces its prompt with the file's, so this is still the serialized default.
+        defaultPrompt = target.prompt != null ? target.prompt.TrimStart('\r', '\n') : "";
 
+        string txt = "";
         try
         {
+            string path = GetFixedPromptPath();
             if (File.Exists(path)) txt = File.ReadAllText(path);
-            else
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
-                File.WriteAllText(path, txt);
-            }
         }
-        catch (Exception e) { Debug.LogError("[AI Prompt] Read/Create failed: " + e); }
+        catch (Exception e) { Debug.LogError("[AI Prompt] Read failed: " + e); }
 
-        input.onValueChanged.RemoveListener(OnValueChanged);
+        if (string.IsNullOrWhiteSpace(txt))
+        {
+            txt = defaultPrompt;
+            WriteFile(txt);
+        }
+        savedPrompt = txt;
+
         input.onEndEdit.RemoveListener(OnEndEdit);
-
-        input.text = txt;
+        input.SetTextWithoutNotify(txt);
         ApplyToLLM(txt);
-
-        input.onValueChanged.AddListener(OnValueChanged);
         input.onEndEdit.AddListener(OnEndEdit);
     }
 
     void OnDestroy()
     {
-        if (input != null)
-        {
-            input.onValueChanged.RemoveListener(OnValueChanged);
-            input.onEndEdit.RemoveListener(OnEndEdit);
-        }
+        if (input != null) input.onEndEdit.RemoveListener(OnEndEdit);
     }
 
-    void OnValueChanged(string s)
+    // Fallback in case the app quits while the box is still being edited.
+    void OnApplicationQuit()
     {
-        if (liveSave) Save(s);
+        if (enabled && input != null && input.text != savedPrompt) Save(input.text);
     }
 
-    void OnEndEdit(string s)
-    {
-        if (!liveSave) Save(s);
-    }
+    void OnEndEdit(string s) => Save(s);
 
     void Save(string s)
     {
-        string path = GetFixedPromptPath();
+        if (string.IsNullOrWhiteSpace(s))
+        {
+            s = defaultPrompt;
+            input.SetTextWithoutNotify(s);
+        }
+        if (s == savedPrompt) return;
+
+        savedPrompt = s;
+        WriteFile(s);
+        ApplyToLLM(s);
+    }
+
+    void WriteFile(string s)
+    {
         try
         {
+            string path = GetFixedPromptPath();
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllText(path, s);
         }
         catch (Exception e) { Debug.LogError("[AI Prompt] Write failed: " + e); }
-        ApplyToLLM(s);
     }
 
+    // Replaces only the system message, so the loaded conversation is kept.
     void ApplyToLLM(string s)
     {
-        if (target != null) target.SetPrompt(s, true);
+        if (target != null) target.SetPrompt(s, target.chat == null || target.chat.Count == 0);
     }
 
     static string GetFixedPromptPath()

@@ -375,7 +375,7 @@ public class AvatarSettingsMenu : MonoBehaviour
         SaveLoadHandler.Instance.data.accessoryStates.TryGetValue(entry.ruleName, out bool state)) entry.toggle.SetIsOnWithoutNotify(state);
 
         var data = SaveLoadHandler.Instance.data;
-        soundThresholdSlider?.SetValueWithoutNotify(data.soundThreshold);
+        SliderValueLabel.SetWithoutNotify(soundThresholdSlider, data.soundThreshold);
         idleSwitchTimeSlider?.SetValueWithoutNotify(data.idleSwitchTime);
         idleTransitionTimeSlider?.SetValueWithoutNotify(data.idleTransitionTime);
         avatarSizeSlider?.SetValueWithoutNotify(data.avatarSize);

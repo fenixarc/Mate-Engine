@@ -137,7 +137,7 @@ public class SettingsHandlerSliders : MonoBehaviour
     public void LoadSettings()
     {
         var data = SaveLoadHandler.Instance.data;
-        soundThresholdSlider?.SetValueWithoutNotify(data.soundThreshold);
+        SliderValueLabel.SetWithoutNotify(soundThresholdSlider, data.soundThreshold);
         idleSwitchTimeSlider?.SetValueWithoutNotify(data.idleSwitchTime);
         idleTransitionTimeSlider?.SetValueWithoutNotify(data.idleTransitionTime);
         avatarSizeSlider?.SetValueWithoutNotify(data.avatarSize);
@@ -148,8 +148,8 @@ public class SettingsHandlerSliders : MonoBehaviour
         hueShiftSlider?.SetValueWithoutNotify(data.uiHueShift);
         saturationSlider?.SetValueWithoutNotify(data.uiSaturation);
         windowSitYOffsetSlider?.SetValueWithoutNotify(data.windowSitYOffset);
-        danceSwitchTimeSlider?.SetValueWithoutNotify(data.danceSwitchTime);
-        danceTransitionTimeSlider?.SetValueWithoutNotify(data.danceTransitionTime);
+        SliderValueLabel.SetWithoutNotify(danceSwitchTimeSlider, data.danceSwitchTime);
+        SliderValueLabel.SetWithoutNotify(danceTransitionTimeSlider, data.danceTransitionTime);
         SetBpmBeatOffsetWithoutNotify(data.bpmBeatOffsetMs);
     }
     public void ApplySettings()
@@ -179,7 +179,7 @@ public class SettingsHandlerSliders : MonoBehaviour
 
     public void ResetToDefaults()
     {
-        soundThresholdSlider?.SetValueWithoutNotify(0.2f);
+        SliderValueLabel.SetWithoutNotify(soundThresholdSlider, 0.2f);
         idleSwitchTimeSlider?.SetValueWithoutNotify(10f);
         idleTransitionTimeSlider?.SetValueWithoutNotify(1f);
         avatarSizeSlider?.SetValueWithoutNotify(1.0f);
@@ -190,8 +190,8 @@ public class SettingsHandlerSliders : MonoBehaviour
         hueShiftSlider?.SetValueWithoutNotify(0f);
         saturationSlider?.SetValueWithoutNotify(1f);
         windowSitYOffsetSlider?.SetValueWithoutNotify(0f);
-        danceSwitchTimeSlider?.SetValueWithoutNotify(15f);
-        danceTransitionTimeSlider?.SetValueWithoutNotify(2f);
+        SliderValueLabel.SetWithoutNotify(danceSwitchTimeSlider, 15f);
+        SliderValueLabel.SetWithoutNotify(danceTransitionTimeSlider, 2f);
         SetBpmBeatOffsetWithoutNotify(DefaultBpmBeatOffsetMs);
 
 
